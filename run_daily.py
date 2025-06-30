@@ -4,7 +4,7 @@ from core.strategy import generate_signal
 from core.db_handler import save_signal
 from core.fundamental_analyzer import get_fundamentals, evaluate_fundamentals
 
-nifty50 = ["RELIANCE.NS", "TCS.NS", "INFY.NS", "ICICIBANK.NS", "HDFCBANK.NS"]  # sample list
+nifty50 = ["RELIANCE", "TCS", "INFY", "HDFCBANK"] # sample list
 
 for symbol in nifty50:
     try:

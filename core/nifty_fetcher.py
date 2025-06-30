@@ -1,24 +1,18 @@
-import yfinance as yf
-import logging
-from time import sleep
+from nsepy import get_history
+import datetime
 
-logging.basicConfig(level=logging.INFO)
+def fetch_nse_data(symbol, start=None, end=None):
+    if start is None:
+        start = datetime.date.today() - datetime.timedelta(days=180)
+    if end is None:
+        end = datetime.date.today()
 
-def fetch_data(symbol, period="6mo", interval="1d", retries=3, delay=2):
-    """
-    Download data for a symbol with retries and error handling.
-    """
-    for attempt in range(1, retries + 1):
-        try:
-            data = yf.download(symbol, period=period, interval=interval, progress=False, threads=False)
-            if data is not None and not data.empty:
-                return data
-            else:
-                logging.warning(f"[{symbol}] Empty data on attempt {attempt}. Retrying...")
-        except Exception as e:
-            logging.error(f"[{symbol}] Exception on attempt {attempt}: {e}")
-
-        sleep(delay)
-
-    logging.error(f"[{symbol}] Failed to fetch data after {retries} attempts.")
-    return None
+    try:
+        df = get_history(symbol=symbol, start=start, end=end)
+        if df.empty:
+            print(f"[⚠️] No data for {symbol}")
+            return None
+        return df
+    except Exception as e:
+        print(f"[❌] Error fetching data for {symbol}: {e}")
+        return None
