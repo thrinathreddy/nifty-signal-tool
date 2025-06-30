@@ -17,6 +17,7 @@ def fetch_data(symbol, period="6mo", interval="1d", retries=3, delay=2):
     for attempt in range(1, retries + 1):
         try:
             data = get_history(symbol=symbol, start=start, end=end)
+            print(data)
             if data is not None and not data.empty:
                 return data
             else:

@@ -12,7 +12,7 @@ def run_scan():
     for symbol in nifty50:
         try:
             df = fetch_data(symbol)
-            if df is None:
+            if df is None or df.empty:
                 continue
             df = apply_indicators(df)
             signal = generate_signal(df)
