@@ -1,11 +1,12 @@
 import streamlit as st
 import os
 import sys
-from run_daily import run_scan
+from datetime import datetime
 
 # Add project root to sys.path to fix imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from run_daily import run_scan
 from core.db_handler import get_signals
 
 # Streamlit UI config
@@ -22,22 +23,34 @@ st.markdown(
     """
 )
 
-# 🔍 Check URL query params
-query_params = st.experimental_get_query_params()
-
-if "scan" in query_params and query_params["scan"][0] == "yes":
-    st.info("Running scanner from URL trigger...")
-    run_scan()
+# Button to trigger scan manually
+if st.button("🔁 Run Scanner"):
+    with st.spinner("Running scan on all Nifty50 stocks..."):
+        run_scan()
     st.success("✅ Scan completed successfully!")
 
-# Load signals from SQLite DB
-signals = get_signals()
+# 🔍 URL query parameter support (?scan=yes)
+query_params = st.query_params()
+if "scan" in query_params and query_params["scan"][0].lower() == "yes":
+    with st.spinner("🔄 Scan triggered from URL..."):
+        run_scan()
+    st.success("✅ Scan completed via URL trigger!")
 
-# Separate by type
+# Load signals from database
+signals = get_signals() or []
+
+# Format helper
+def format_date(date_str):
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%b %d, %Y")
+    except Exception:
+        return date_str  # fallback
+
+# Separate signals
 short_term = [s for s in signals if s[2] == "BUY"]
 long_term = [s for s in signals if s[2] == "LONG_TERM_BUY"]
 
-# Show tabs
+# Create tabs for display
 tab1, tab2 = st.tabs(["📅 Short-Term Signals", "🏦 Long-Term Investment Picks"])
 
 # --- TAB 1: SHORT TERM SIGNALS ---
@@ -46,7 +59,7 @@ with tab1:
     if short_term:
         st.success(f"📊 {len(short_term)} short-term opportunities found.")
         for sym, date, _ in short_term:
-            st.markdown(f"🔹 **{sym}** — `{date}`")
+            st.markdown(f"🔹 **{sym}** — `{format_date(date)}`")
     else:
         st.info("No short-term signals available yet. Run the scanner to generate signals.")
 
@@ -56,6 +69,6 @@ with tab2:
     if long_term:
         st.success(f"🏆 {len(long_term)} fundamentally strong stocks identified.")
         for sym, date, _ in long_term:
-            st.markdown(f"✅ **{sym}** — `{date}`")
+            st.markdown(f"✅ **{sym}** — `{format_date(date)}`")
     else:
         st.info("No long-term picks available yet. Try rerunning the fundamental analyzer.")
