@@ -1,5 +1,6 @@
 streamlit
 yfinance
+nsepy
 supabase
 requests
 pandas==1.5.3
