@@ -10,7 +10,7 @@ import time
 
 API_KEY = "FDTDZQSBN1KGDPOC"  # Store as env variable in production
 
-def fetch_alpha_data(symbol, interval='daily', outputsize='compact'):
+def fetch_data(symbol, interval='daily', outputsize='compact'):
     try:
         ts = TimeSeries(key=API_KEY, output_format='pandas')
         data, meta = ts.get_daily(symbol=symbol, outputsize=outputsize)
