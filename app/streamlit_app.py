@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import sys
+from run_daily import run_scan
 
 # Add project root to sys.path to fix imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -20,6 +21,14 @@ st.markdown(
     - **Long-term investment picks** based on fundamentals
     """
 )
+
+# 🔍 Check URL query params
+query_params = st.experimental_get_query_params()
+
+if "scan" in query_params and query_params["scan"][0] == "yes":
+    st.info("Running scanner from URL trigger...")
+    run_scan()
+    st.success("✅ Scan completed successfully!")
 
 # Load signals from SQLite DB
 signals = get_signals()
