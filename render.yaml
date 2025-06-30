@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: nifty-signal-ui
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app/streamlit_app.py --server.port $PORT
+    envVars:
+      - key: SUPABASE_URL
+        fromDatabase:
+          name: supabase-db
+          property: connectionString
+      - key: SUPABASE_KEY
+        sync: false  # you'll add it manually
+
+  - type: worker
+    name: nifty-signal-cron
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_daily.py
+    schedule: "0 11 * * *"  # daily 11:00 UTC = 4:30 PM IST
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false

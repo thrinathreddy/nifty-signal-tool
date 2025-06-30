@@ -1,35 +1,24 @@
-from nsepy import get_history
-import datetime
-import requests
+import yfinance as yf
+import logging
+from time import sleep
 
+logging.basicConfig(level=logging.INFO)
 
-# Patch requests.get to add headers
-_real_get = requests.get
+def fetch_data(symbol, period="6mo", interval="1d", retries=3, delay=2):
+    """
+    Download data for a symbol with retries and error handling.
+    """
+    for attempt in range(1, retries + 1):
+        try:
+            data = yf.download(symbol, period=period, interval=interval, progress=False, threads=False)
+            if data is not None and not data.empty:
+                return data
+            else:
+                logging.warning(f"[{symbol}] Empty data on attempt {attempt}. Retrying...")
+        except Exception as e:
+            logging.error(f"[{symbol}] Exception on attempt {attempt}: {e}")
 
-def custom_get(*args, **kwargs):
-    headers = kwargs.pop("headers", {})
-    headers["User-Agent"] = (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-    )
-    kwargs["headers"] = headers
-    return _real_get(*args, **kwargs)
+        sleep(delay)
 
-requests.get = custom_get  # Monkey-patch requests.get
-
-def fetch_data(symbol, start=None, end=None):
-    if start is None:
-        start = datetime.date.today() - datetime.timedelta(days=180)
-    if end is None:
-        end = datetime.date.today()
-
-    try:
-        df = get_history(symbol=symbol, start=start, end=end)
-        print(df)
-        if df.empty:
-            print(f"[⚠️] No data for {symbol}")
-            return None
-        return df
-    except Exception as e:
-        print(f"[❌] Error fetching data for {symbol}: {e}")
-        return None
+    logging.error(f"[{symbol}] Failed to fetch data after {retries} attempts.")
+    return None
