@@ -8,7 +8,7 @@ from alpha_vantage.timeseries import TimeSeries
 import pandas as pd
 import time
 
-API_KEY = os.getenv("ALPHAVANTAGE_KEY")  # Store as env variable in production
+API_KEY = "FDTDZQSBN1KGDPOC"  # Store as env variable in production
 
 def fetch_alpha_data(symbol, interval='daily', outputsize='compact'):
     try:
