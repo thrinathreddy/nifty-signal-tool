@@ -1,31 +1,18 @@
-import sqlite3
-from datetime import date
+from supabase import create_client
 import os
+from datetime import date
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "db", "signals.db")
-
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS signals (
-            symbol TEXT, date TEXT, type TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def save_signal(symbol, signal_type):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO signals VALUES (?, ?, ?)", (symbol, str(date.today()), signal_type))
-    conn.commit()
-    conn.close()
+    supabase.table("signals").insert({
+        "symbol": symbol,
+        "date": str(date.today()),
+        "type": signal_type
+    }).execute()
 
 def get_signals():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM signals ORDER BY date DESC")
-    rows = cursor.fetchall()
-    conn.close()
-    return rows
+    response = supabase.table("signals").select("*").order("date", desc=True).execute()
+    return response.data
