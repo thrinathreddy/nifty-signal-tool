@@ -1,5 +1,10 @@
 import streamlit as st
 from core.db_handler import get_signals
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from core.db_handler import get_signals
 
 st.set_page_config(page_title="Nifty50 Signal Dashboard", layout="centered")
 
