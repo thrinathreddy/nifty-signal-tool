@@ -1,18 +1,28 @@
-name: Daily Nifty Scanner
+name: Daily Scan
 
 on:
   schedule:
-    - cron: '0 13 * * *'  # 6:30 PM IST
+    - cron: '0 15 * * *' # Every day at 8:30 PM IST
   workflow_dispatch:
 
 jobs:
-  build:
+  run-scan:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - run: pip install -r requirements.txt
-      - run: python run_daily.py
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run daily scanner
+        run: python run_daily.py
