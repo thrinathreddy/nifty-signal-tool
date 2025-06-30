@@ -3,6 +3,7 @@ import requests
 from time import sleep
 from datetime import datetime, timedelta
 from nsepy import get_history
+import yfinance as yf
 
 logging.basicConfig(level=logging.INFO)
 # Patch requests.get to add headers
@@ -19,7 +20,7 @@ def custom_get(*args, **kwargs):
 
 requests.get = custom_get  # Monkey-patch requests.get
 
-def fetch_data(symbol, days=180, retries=3, delay=2):
+def fetch_data(symbol, days=180, retries=3, delay=2, period="6mo", interval="1d"):
     """
     Fetch historical stock data using nsepy with retry logic.
     
@@ -37,7 +38,7 @@ def fetch_data(symbol, days=180, retries=3, delay=2):
             try:
                 logging.warning(start)
                 logging.warning(end)
-                data = get_history(symbol=symbol, start=start, end=end)
+                data = yf.download(symbol, period=period, interval=interval, progress=False, threads=False)
                 if data is not None and not data.empty:
                     logging.info(f"[{symbol}] ✅ Data fetched successfully with {len(data)} rows.")
                     return data
