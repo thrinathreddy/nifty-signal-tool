@@ -1,5 +1,6 @@
 from nsepy import get_history
 import datetime
+import requests
 
 def fetch_data(symbol, start=None, end=None):
     if start is None:
