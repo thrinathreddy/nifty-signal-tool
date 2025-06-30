@@ -9,6 +9,8 @@ nifty50 = ["RELIANCE.NS", "TCS.NS", "INFY.NS", "ICICIBANK.NS", "HDFCBANK.NS"]  #
 for symbol in nifty50:
     try:
         df = fetch_data(symbol)
+        if df is None:
+            continue
         df = apply_indicators(df)
         signal = generate_signal(df)
         if signal == "BUY":
