@@ -1,7 +1,8 @@
 streamlit
-pandas
-numpy>=1.24,<1.26
 yfinance
-pandas_ta
 supabase
-setuptools
+requests
+pandas==1.5.3
+numpy==1.24.4
+pandas_ta==0.3.14b0
+setuptools<81
