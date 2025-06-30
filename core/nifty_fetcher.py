@@ -1,7 +1,7 @@
 from nsepy import get_history
 import datetime
 
-def fetch_nse_data(symbol, start=None, end=None):
+def fetch_data(symbol, start=None, end=None):
     if start is None:
         start = datetime.date.today() - datetime.timedelta(days=180)
     if end is None:
