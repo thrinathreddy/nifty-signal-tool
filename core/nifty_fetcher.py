@@ -8,7 +8,12 @@ def fetch_data(symbol, start=None, end=None):
         end = datetime.date.today()
 
     try:
+        # Monkey-patch headers
+        requests.defaults.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
+        })
         df = get_history(symbol=symbol, start=start, end=end)
+        print(df)
         if df.empty:
             print(f"[⚠️] No data for {symbol}")
             return None
