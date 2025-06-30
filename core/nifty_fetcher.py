@@ -1,9 +1,23 @@
 import logging
+import requests
 from time import sleep
 from datetime import datetime, timedelta
 from nsepy import get_history
 
 logging.basicConfig(level=logging.INFO)
+# Patch requests.get to add headers
+_real_get = requests.get
+
+def custom_get(*args, **kwargs):
+    headers = kwargs.pop("headers", {})
+    headers["User-Agent"] = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+    )
+    kwargs["headers"] = headers
+    return _real_get(*args, **kwargs)
+
+requests.get = custom_get  # Monkey-patch requests.get
 
 def fetch_data(symbol, days=180, retries=3, delay=2):
     """
@@ -21,6 +35,8 @@ def fetch_data(symbol, days=180, retries=3, delay=2):
 
         for attempt in range(1, retries + 1):
             try:
+                logging.warning(start)
+                logging.warning(end)
                 data = get_history(symbol=symbol, start=start, end=end)
                 if data is not None and not data.empty:
                     logging.info(f"[{symbol}] ✅ Data fetched successfully with {len(data)} rows.")
