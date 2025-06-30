@@ -22,6 +22,7 @@ def fetch_data(symbol, interval='daily', outputsize='compact'):
             '5. volume': 'Volume'
         })
         data.index = pd.to_datetime(data.index)
+        print(data)
         return data
     except Exception as e:
         print(f"[❌] AlphaVantage error for {symbol}: {e}")
