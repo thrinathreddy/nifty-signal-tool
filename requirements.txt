@@ -1,5 +1,4 @@
 requests
-numpy==1.23.5
 numpy>=1.26.0
 pandas==1.5.3
 pandas_ta==0.3.14b0
