@@ -9,14 +9,14 @@ from core.strategy import generate_signal
 from core.db_handler import save_signal
 from core.fundamental_analyzer import get_fundamentals, evaluate_fundamentals
 
-nifty50 = ["RELIANCE.BSE", "TCS.BSE", "INFY.BSE", "HDFCBANK.BSE"] # sample list
+nifty50 = ["RELIANCE", "TCS", "INFY", "HDFCBANK"] # sample list
 def run_scan():
     print("inside run scan")
     for symbol in nifty50:
         try:
             df1 = nse_fetch_data(symbol)
-            df2 = yahoo_fetch_data(symbol)
-            df = fetch_data(symbol)
+            df2 = yahoo_fetch_data(symbol+".NS")
+            df = fetch_data(symbol+".BSE")
             if df is None or df.empty:
                 continue
             df = apply_indicators(df)
