@@ -21,6 +21,7 @@ def run_scan():
             #df = fetch_data(symbol+".BSE")
             if df is None or df.empty:
                 continue
+            df.columns = df.columns.get_level_values(0) 
             logging.info("📊 Applying indicators...")
             df = apply_indicators(df)
             logging.info("✅ Indicators applied.")
