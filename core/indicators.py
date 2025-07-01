@@ -15,6 +15,8 @@ def apply_indicators(df):
         df["rsi"] = ta.rsi(df["Close"], length=14)
 
         logger.info("📈 Calculating MACD...")
+        logger.info(f"📄 DataFrame length: {len(df)} rows")
+        logger.debug(df.tail(5).to_string())
         macd_df = ta.macd(df["Close"])
         if macd_df is not None and not macd_df.empty:
             df["macd"] = macd_df.iloc[:, 0]
