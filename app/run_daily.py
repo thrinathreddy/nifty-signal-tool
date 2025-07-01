@@ -8,6 +8,8 @@ from core.indicators import apply_indicators
 from core.strategy import generate_signal
 from core.db_handler import save_signal
 from core.fundamental_analyzer import get_fundamentals, evaluate_fundamentals
+import logging
+logging.basicConfig(level=logging.INFO)
 
 nifty50 = ["ADANIENT", "ADANIPORTS", "APOLLOHOSP", "ASIANPAINT", "AXISBANK", "BAJAJ‑AUTO", "BAJFINANCE", "BAJAJFINSV", "BEL", "BHARTIARTL", "CIPLA", "COALINDIA", "DRREDDY", "EICHERMOT", "ETERNAL", "GRASIM", "HCLTECH", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDUNILVR", "ICICIBANK", "INDUSINDBK", "INFY", "ITC", "JIOFIN", "JSWSTEEL", "KOTAKBANK", "LT", "M&M", "MARUTI", "NESTLEIND", "NTPC", "ONGC", "POWERGRID", "RELIANCE", "SBILIFE", "SHRIRAMFIN", "SBIN", "SUNPHARMA", "TCS", "TATACONSUM", "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN", "TRENT", "ULTRACEMCO", "WIPRO"] # sample list
 def run_scan():
@@ -19,8 +21,13 @@ def run_scan():
             #df = fetch_data(symbol+".BSE")
             if df is None or df.empty:
                 continue
+            logging.info("📊 Applying indicators...")
             df = apply_indicators(df)
+            logging.info("✅ Indicators applied.")
+
+            logging.info("📈 Generating signal...")
             signal = generate_signal(df)
+            logging.info(f"✅ Signal generated: {signal}")
             if signal == "BUY":
                 save_signal(symbol, signal)
 
