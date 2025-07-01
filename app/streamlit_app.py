@@ -30,8 +30,8 @@ if st.button("🔁 Run Scanner"):
     st.success("✅ Scan completed successfully!")
 
 # 🔍 URL query parameter support (?scan=yes)
-query_params = st.experimental_get_query_params()
-if "scan" in query_params and query_params["scan"][0].lower() == "yes":
+query_params = st.query_params
+if "scan" in query_params and query_params["scan"].lower() == "yes":
     with st.spinner("🔄 Scan triggered from URL..."):
         run_scan()
     st.success("✅ Scan completed via URL trigger!")

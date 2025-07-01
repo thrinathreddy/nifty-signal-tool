@@ -9,6 +9,7 @@ from core.fundamental_analyzer import get_fundamentals, evaluate_fundamentals
 
 nifty50 = ["RELIANCE.BSE", "TCS.BSE", "INFY.BSE", "HDFCBANK.BSE"] # sample list
 def run_scan():
+    print("inside run scan")
     for symbol in nifty50:
         try:
             df = fetch_data(symbol)
