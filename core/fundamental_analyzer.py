@@ -1,15 +1,23 @@
+import yfinance as yf
 import requests
+import time
 
 def get_fundamentals(symbol):
-    url = f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}?modules=financialData"
-    res = requests.get(url)
     try:
-        fin = res.json()['quoteSummary']['result'][0]['financialData']
-        roe = fin.get('returnOnEquity', {}).get('raw', 0)
-        debt_equity = fin.get('debtToEquity', {}).get('raw', 0)
-        eps_growth = fin.get('earningsGrowth', {}).get('raw', 0)
-        return roe, debt_equity, eps_growth
-    except:
+        stock = yf.Ticker(symbol)
+        fin = stock.info
+        print(f"\n{symbol} info keys:\n", fin.keys())
+        roe = fin.get('returnOnEquity')
+        debt_equity = fin.get('debtToEquity')
+        eps_growth = fin.get('earningsGrowth')
+
+        # If all three are missing, treat as unavailable
+        if roe is None and debt_equity is None and eps_growth is None:
+            raise ValueError("Missing expected financial data")
+
+        return roe or 0, debt_equity or 0, eps_growth or 0
+
+    except Exception as e:
         print(f"[❌] fundamental error for {symbol}: {e}")
         return 0, 0, 0
 

@@ -36,7 +36,7 @@ def run_scan():
                 save_signal(symbol, signal)
 
             # also check long-term signal
-            roe, de, eps = get_fundamentals(symbol)
+            roe, de, eps = get_fundamentals(symbol+".NS")
             ltsignal = evaluate_fundamentals(roe, de, eps)
             if ltsignal == "LONG_TERM_BUY":
                 save_signal(symbol, ltsignal)
