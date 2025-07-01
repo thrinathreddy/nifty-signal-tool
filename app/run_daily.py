@@ -2,6 +2,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from core.nifty_fetcher import fetch_data
+from core.nse_fetcher import nse_fetch_data
+from core.yahoo_fetcher import yahoo_fetch_data
 from core.indicators import apply_indicators
 from core.strategy import generate_signal
 from core.db_handler import save_signal
@@ -12,6 +14,8 @@ def run_scan():
     print("inside run scan")
     for symbol in nifty50:
         try:
+            df1 = nse_fetch_data(symbol)
+            df2 = yahoo_fetch_data(symbol)
             df = fetch_data(symbol)
             if df is None or df.empty:
                 continue

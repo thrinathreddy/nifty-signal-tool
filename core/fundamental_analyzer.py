@@ -10,6 +10,7 @@ def get_fundamentals(symbol):
         eps_growth = fin.get('earningsGrowth', {}).get('raw', 0)
         return roe, debt_equity, eps_growth
     except:
+        print(f"[❌] fundamental error for {symbol}: {e}")
         return 0, 0, 0
 
 def evaluate_fundamentals(roe, de, eps):
