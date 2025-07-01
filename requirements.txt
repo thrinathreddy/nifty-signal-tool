@@ -1,11 +1,10 @@
-streamlit
 yfinance
 nsepy
 supabase
 requests
 numpy>=1.26.0
-pandas==1.5.3
 pandas>=2.1.4
 pandas_ta==0.3.14b0
+streamlit==1.35.0
 setuptools<81
 alpha_vantage
