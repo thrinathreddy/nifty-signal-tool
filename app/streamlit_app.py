@@ -38,6 +38,7 @@ if "scan" in query_params and query_params["scan"].lower() == "yes":
 
 # Load signals from database
 signals = get_signals() or []
+st.info("signals::"+signals)
 
 # Format helper
 def format_date(date_str):
@@ -47,10 +48,8 @@ def format_date(date_str):
         return date_str  # fallback
 
 # Separate signals
-for i, s in enumerate(signals):
-    print(f"{i}: {s}")
-short_term = [s for s in signals if s[2] == "BUY"]
-long_term = [s for s in signals if s[2] == "LONG_TERM_BUY"]
+short_term = [s for s in data if s.get("type") == "BUY"]
+long_term = [s for s in data if s.get("type") == "LONG_TERM_BUY"]
 
 # Create tabs for display
 tab1, tab2 = st.tabs(["📅 Short-Term Signals", "🏦 Long-Term Investment Picks"])
@@ -60,8 +59,8 @@ with tab1:
     st.subheader("Today's Technical BUY Signals")
     if short_term:
         st.success(f"📊 {len(short_term)} short-term opportunities found.")
-        for sym, date, _ in short_term:
-            st.markdown(f"🔹 **{sym}** — `{format_date(date)}`")
+        for signal in short_term:
+            st.markdown(f"🔹 **{signal['symbol']}** — `{format_date(signal['date'])}`")
     else:
         st.info("No short-term signals available yet. Run the scanner to generate signals.")
 
@@ -70,7 +69,7 @@ with tab2:
     st.subheader("Long-Term Investment Picks")
     if long_term:
         st.success(f"🏆 {len(long_term)} fundamentally strong stocks identified.")
-        for sym, date, _ in long_term:
-            st.markdown(f"✅ **{sym}** — `{format_date(date)}`")
+        for signal in long_term:
+            st.markdown(f"✅ **{signal['symbol']}** — `{format_date(signal['date'])}`")
     else:
         st.info("No long-term picks available yet. Try rerunning the fundamental analyzer.")
