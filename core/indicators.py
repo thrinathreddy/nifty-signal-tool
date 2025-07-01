@@ -1,5 +1,6 @@
 # indicators.py
 import pandas_ta as ta
+import pandas as pd
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,21 +12,34 @@ def apply_indicators(df):
         return None
 
     try:
+        # Ensure Close column is numeric
+        df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
+        nan_count = df["Close"].isna().sum()
+        if nan_count > 0:
+            logger.warning(f"⚠️ Found {nan_count} NaNs in 'Close' column. Dropping them.")
+            df = df.dropna(subset=["Close"])
+
+        logger.info(f"📄 DataFrame length after cleaning: {len(df)} rows")
+        logger.debug(df.tail(5).to_string())
+
         logger.info("🧮 Calculating RSI...")
         df["rsi"] = ta.rsi(df["Close"], length=14)
 
         logger.info("📈 Calculating MACD...")
-        logger.info(f"📄 DataFrame length: {len(df)} rows")
-        logger.debug(df.tail(5).to_string())
-        macd_df = ta.macd(df["Close"])
-        if macd_df is not None and not macd_df.empty:
-            df["macd"] = macd_df.iloc[:, 0]
-            df["macd_signal"] = macd_df.iloc[:, 1]
-            logger.info("✅ MACD and Signal added.")
+        if len(df) >= 50:
+            macd_df = ta.macd(df["Close"])
+            if macd_df is not None and not macd_df.empty:
+                df["macd"] = macd_df.iloc[:, 0]
+                df["macd_signal"] = macd_df.iloc[:, 1]
+                logger.info("✅ MACD and Signal added.")
+            else:
+                df["macd"] = None
+                df["macd_signal"] = None
+                logger.warning("⚠️ MACD calculation returned empty DataFrame.")
         else:
             df["macd"] = None
             df["macd_signal"] = None
-            logger.warning("⚠️ MACD calculation returned empty DataFrame.")
+            logger.warning("⚠️ Not enough data (min 50 rows) for MACD calculation.")
 
         logger.info("📉 Calculating EMA50 and EMA200...")
         df["ema50"] = ta.ema(df["Close"], length=50)
