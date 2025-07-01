@@ -33,7 +33,7 @@ def yahoo_fetch_data(symbol, days=180, retries=3, delay=2, period="6mo", interva
         start = end - timedelta(days=days)
 
         try:
-            data = yf.download(symbol, period=period, interval=interval, progress=False, threads=False)
+            data = yf.download(symbol, period=period, interval=interval, auto_adjust=True, progress=False, threads=False)
             if data is not None and not data.empty:
                 logging.info(f"[{symbol}] ✅ Data fetched successfully with {len(data)} rows.")
                 return data
