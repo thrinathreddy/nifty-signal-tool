@@ -12,6 +12,7 @@ def apply_indicators(df):
 
     try:
         # Ensure Close is numeric
+        logger.info(df)
         df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
         nan_count = df["Close"].isna().sum()
         if nan_count > 0:
