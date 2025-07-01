@@ -23,9 +23,9 @@ def fetch_data(symbol, interval='daily', outputsize='compact'):
             '4. close': 'Close',
             '5. volume': 'Volume'
         })
-         print("data start3")
+        print("data start3")
         data.index = pd.to_datetime(data.index)
-         print("data start4")
+        print("data start4")
         print(data)
         return data
     except Exception as e:
