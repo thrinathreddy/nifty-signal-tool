@@ -7,7 +7,7 @@ from core.strategy import generate_signal
 from core.db_handler import save_signal
 from core.fundamental_analyzer import get_fundamentals, evaluate_fundamentals
 
-nifty50 = ["RELIANCE", "TCS", "INFY", "HDFCBANK"] # sample list
+nifty50 = ["RELIANCE.BSE", "TCS.BSE", "INFY.BSE", "HDFCBANK.BSE"] # sample list
 def run_scan():
     for symbol in nifty50:
         try:
