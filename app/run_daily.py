@@ -23,10 +23,7 @@ def run_scan():
                 continue
             # After downloading or loading your DataFrame
             logging.info("downloaded data...")
-            if isinstance(df.columns, pd.MultiIndex):
-                logger.info("🔧 Flattening MultiIndex columns...")
-                df.columns = [col[0] for col in df.columns]  # keep 'Close', 'High', etc.
-
+            df.columns = df.columns.get_level_values(0)
             logger.info(f"✅ Columns after flatten: {df.columns.tolist()}")
             logging.info("📊 Applying indicators...")
             df = apply_indicators(df)
