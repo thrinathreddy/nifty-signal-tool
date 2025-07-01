@@ -22,6 +22,7 @@ def run_scan():
             if df is None or df.empty:
                 continue
             # After downloading or loading your DataFrame
+            logging.info("downloaded data...")
             if isinstance(df.columns, pd.MultiIndex):
                 logger.info("🔧 Flattening MultiIndex columns...")
                 df.columns = [col[0] for col in df.columns]  # keep 'Close', 'High', etc.
