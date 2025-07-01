@@ -47,8 +47,8 @@ def format_date(date_str):
         return date_str  # fallback
 
 # Separate signals
-short_term = [s for s in data if s.get("type") == "BUY"]
-long_term = [s for s in data if s.get("type") == "LONG_TERM_BUY"]
+short_term = [s for s in signals if s.get("type") == "BUY"]
+long_term = [s for s in signals if s.get("type") == "LONG_TERM_BUY"]
 
 # Create tabs for display
 tab1, tab2 = st.tabs(["📅 Short-Term Signals", "🏦 Long-Term Investment Picks"])
