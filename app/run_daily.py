@@ -21,7 +21,12 @@ def run_scan():
             #df = fetch_data(symbol+".BSE")
             if df is None or df.empty:
                 continue
-            df.columns = df.columns.get_level_values(0) 
+            # After downloading or loading your DataFrame
+            if isinstance(df.columns, pd.MultiIndex):
+                logger.info("🔧 Flattening MultiIndex columns...")
+                df.columns = [col[0] for col in df.columns]  # keep 'Close', 'High', etc.
+
+            logger.info(f"✅ Columns after flatten: {df.columns.tolist()}")
             logging.info("📊 Applying indicators...")
             df = apply_indicators(df)
             logging.info("✅ Indicators applied.")
