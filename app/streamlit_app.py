@@ -47,6 +47,8 @@ def format_date(date_str):
         return date_str  # fallback
 
 # Separate signals
+for i, s in enumerate(signals):
+    print(f"{i}: {s}")
 short_term = [s for s in signals if s[2] == "BUY"]
 long_term = [s for s in signals if s[2] == "LONG_TERM_BUY"]
 
