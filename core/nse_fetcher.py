@@ -32,17 +32,15 @@ def nse_fetch_data(symbol, days=180, retries=3, delay=2):
         end = datetime.today()
         start = end - timedelta(days=days)
 
-        for attempt in range(1, retries + 1):
-            try:
-                data = get_history(symbol=symbol, start=start, end=end)
-                if data is not None and not data.empty:
-                    logging.info(f"[{symbol}] ✅ Data fetched successfully with {len(data)} rows.")
-                    return data
-                else:
-                    logging.warning(f"[{symbol}] ⚠️ Empty data on attempt {attempt}. Retrying...")
-            except Exception as e:
-                logging.error(f"[{symbol}] ❌ Exception on attempt {attempt}: {e}")
-            sleep(delay)
+        try:
+            data = get_history(symbol=symbol, start=start, end=end)
+            if data is not None and not data.empty:
+                logging.info(f"[{symbol}] ✅ Data fetched successfully with {len(data)} rows.")
+                return data
+            else:
+                logging.warning(f"[{symbol}] ⚠️ Empty data on attempt {attempt}. Retrying...")
+        except Exception as e:
+            logging.error(f"[{symbol}] ❌ Exception on attempt {attempt}: {e}")
 
         logging.error(f"[{symbol}] ❌ Failed to fetch data after {retries} attempts.")
         return None
