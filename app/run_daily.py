@@ -24,7 +24,7 @@ def run_scan():
             # After downloading or loading your DataFrame
             logging.info("downloaded data...")
             df.columns = df.columns.get_level_values(0)
-            logger.info(f"✅ Columns after flatten: {df.columns.tolist()}")
+            logging.info(f"✅ Columns after flatten: {df.columns.tolist()}")
             logging.info("📊 Applying indicators...")
             df = apply_indicators(df)
             logging.info("✅ Indicators applied.")
