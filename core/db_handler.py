@@ -15,5 +15,4 @@ def save_signal(symbol, signal_type):
 
 def get_signals():
     response = supabase.table("signals").select("*").order("date", desc=True).execute()
-    print(response)
     return response.data

@@ -38,7 +38,6 @@ if "scan" in query_params and query_params["scan"].lower() == "yes":
 
 # Load signals from database
 signals = get_signals() or []
-st.info("signals::"+signals)
 
 # Format helper
 def format_date(date_str):
