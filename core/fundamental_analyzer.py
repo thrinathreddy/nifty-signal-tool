@@ -21,7 +21,13 @@ def get_fundamentals(symbol):
         print(f"[❌] fundamental error for {symbol}: {e}")
         return 0, 0, 0
 
+
 def evaluate_fundamentals(roe, de, eps):
+    if roe is None or de is None or eps is None:
+        return "HOLD"
     if roe > 0.15 and de < 100 and eps > 0.1:
         return "LONG_TERM_BUY"
-    return "HOLD"
+    # Hold zone (not strong enough to buy, not weak enough to sell)
+    if 0.12 < roe <= 0.15 and 100 <= de <= 120 and 0.05 < eps <= 0.1:
+        return "HOLD"
+    return "LONG_TERM_SELL"

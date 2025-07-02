@@ -18,7 +18,7 @@ def custom_get(*args, **kwargs):
     return _real_get(*args, **kwargs)
 
 requests.get = custom_get  # Monkey-patch requests.get
-def yahoo_fetch_data(symbol, days=180, retries=3, delay=2, period="6mo", interval="1d"):
+def yahoo_fetch_data(symbol, days=180, retries=3, delay=2, period="12mo", interval="1d"):
     """
     Fetch historical stock data using nsepy with retry logic.
     
@@ -33,18 +33,30 @@ def yahoo_fetch_data(symbol, days=180, retries=3, delay=2, period="6mo", interva
         start = end - timedelta(days=days)
 
         try:
-            data = yf.download(symbol, period=period, interval=interval, auto_adjust=True, progress=False, threads=False)
+            data = yf.download(symbol+".NS", start=start,
+    end=end, interval=interval, auto_adjust=True, progress=False, threads=False)
             if data is not None and not data.empty:
                 logging.info(f"[{symbol}] ✅ Data fetched successfully with {len(data)} rows.")
                 return data
             else:
-                logging.warning(f"[{symbol}] ⚠️ Empty data on attempt {attempt}. Retrying...")
+                logging.warning(f"[{symbol}] ⚠️ Empty data on attempt . Retrying...")
         except Exception as e:
-            logging.error(f"[{symbol}] ❌ Exception on attempt {attempt}: {e}")
+            logging.error(f"[{symbol}] ❌ Exception on attempt : {e}")
 
         logging.error(f"[{symbol}] ❌ Failed to fetch data after {retries} attempts.")
         return None
 
     except Exception as e:
         logging.error(f"[{symbol}] ❌ Unexpected error in fetch_data: {e}")
+        return None
+
+def get_open_price(symbol, base_date):
+    try:
+        df = yf.download(symbol+".NS", start=base_date,
+                           end=base_date, interval="1d", auto_adjust=True, progress=False, threads=False)
+        df.columns = df.columns.get_level_values(0)
+        print(df)
+        return float(df['Open'].iloc[0]) if not df.empty else None
+    except Exception as e:
+        print(f"[❌] Failed price for {symbol}: {e}")
         return None

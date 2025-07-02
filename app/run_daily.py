@@ -8,16 +8,16 @@ from core.indicators import apply_indicators
 from core.strategy import generate_signal
 from core.db_handler import save_signal
 from core.fundamental_analyzer import get_fundamentals, evaluate_fundamentals
+from core.getSignals import process_today_buy_signals, process_today_sell_signals
 import logging
 logging.basicConfig(level=logging.INFO)
-
 nifty50 = ["ADANIENT", "ADANIPORTS", "APOLLOHOSP", "ASIANPAINT", "AXISBANK", "BAJAJ‑AUTO", "BAJFINANCE", "BAJAJFINSV", "BEL", "BHARTIARTL", "CIPLA", "COALINDIA", "DRREDDY", "EICHERMOT", "ETERNAL", "GRASIM", "HCLTECH", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDUNILVR", "ICICIBANK", "INDUSINDBK", "INFY", "ITC", "JIOFIN", "JSWSTEEL", "KOTAKBANK", "LT", "M&M", "MARUTI", "NESTLEIND", "NTPC", "ONGC", "POWERGRID", "RELIANCE", "SBILIFE", "SHRIRAMFIN", "SBIN", "SUNPHARMA", "TCS", "TATACONSUM", "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN", "TRENT", "ULTRACEMCO", "WIPRO"] # sample list
 def run_scan():
     print("inside run scan")
     for symbol in nifty50:
         try:
             #df1 = nse_fetch_data(symbol)
-            df = yahoo_fetch_data(symbol+".NS")
+            df = yahoo_fetch_data(symbol)
             #df = fetch_data(symbol+".BSE")
             if df is None or df.empty:
                 continue
@@ -34,15 +34,29 @@ def run_scan():
             logging.info(f"✅ Signal generated: {signal}")
             if signal == "BUY":
                 save_signal(symbol, signal)
+            if signal == "SELL":
+                save_signal(symbol, signal)
 
             # also check long-term signal
             roe, de, eps = get_fundamentals(symbol+".NS")
             ltsignal = evaluate_fundamentals(roe, de, eps)
             if ltsignal == "LONG_TERM_BUY":
                 save_signal(symbol, ltsignal)
+            if ltsignal == "LONG_TERM_SELL":
+                save_signal(symbol, ltsignal)
 
         except Exception as e:
             print(f"Error with {symbol}: {e}")
+    try:
+        logging.info("📈 Generating buys...")
+        process_today_buy_signals()
+    except Exception as e:
+        print(f"Error : {e}")
+    try:
+        logging.info("📈 Generating sells...")
+        process_today_sell_signals()
+    except Exception as e:
+        print(f"Error : {e}")
 
 
 if __name__ == "__main__":
