@@ -114,5 +114,8 @@ def get_today_sell_signals(signal_date):
         .eq("date", date1) \
         .in_("type",  ["SELL", "LONG_TERM_SELL"]) \
         .execute()
+    return result.data if result.data else []
 
+def get_trade_log():
+    result = supabase.table("trade_log").select("*").order("buy_trade_date", desc=True).execute()
     return result.data if result.data else []

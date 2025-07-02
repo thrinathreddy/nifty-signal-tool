@@ -1,7 +1,4 @@
 from datetime import date, timedelta
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from core.db_handler import get_today_buy_signals, insert_trade_buy, get_today_sell_signals, close_trade_sell
 from core.yahoo_fetcher import get_open_price
 def process_today_buy_signals():

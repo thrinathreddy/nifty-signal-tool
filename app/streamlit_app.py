@@ -2,12 +2,14 @@ import streamlit as st
 import os
 import sys
 from datetime import datetime
+import pandas as pd
+import altair as alt
 
 # Add project root to sys.path to fix imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from run_daily import run_scan
-from core.db_handler import get_signals
+from core.db_handler import get_signals, get_trade_log
 
 # Streamlit UI config
 st.set_page_config(page_title="Nifty50 Signal Dashboard", layout="centered")
@@ -50,8 +52,21 @@ def format_date(date_str):
 short_term = [s for s in signals if s.get("type") == "BUY"]
 long_term = [s for s in signals if s.get("type") == "LONG_TERM_BUY"]
 
+trade_log = get_trade_log() or []
+
+# Separate open and closed trades
+open_trades = [t for t in trade_log if t["status"] == "OPEN"]
+closed_trades = [t for t in trade_log if t["status"] == "CLOSED"]
+
+# Calculate total PnL for closed trades
+total_pnl = round(sum(float(t.get("pnl", 0)) for t in closed_trades), 2)
+
 # Create tabs for display
-tab1, tab2 = st.tabs(["📅 Short-Term Signals", "🏦 Long-Term Investment Picks"])
+tab1, tab2, tab3 = st.tabs([
+    "📅 Short-Term Signals",
+    "🏦 Long-Term Investment Picks",
+    "📘 Trade Log & Performance"
+])
 
 # --- TAB 1: SHORT TERM SIGNALS ---
 with tab1:
@@ -72,3 +87,64 @@ with tab2:
             st.markdown(f"✅ **{signal['symbol']}** — `{format_date(signal['date'])}`")
     else:
         st.info("No long-term picks available yet. Try rerunning the fundamental analyzer.")
+
+with tab3:
+    st.subheader("📘 Trade Log & Performance Summary")
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("📂 Total Trades", len(trade_log))
+    col2.metric("🔓 Open Trades", len(open_trades))
+    col3.metric("💰 Closed PnL", f"{total_pnl:+.2f}")
+
+    if trade_log:
+        df = pd.DataFrame(trade_log)
+        df["buy_trade_date"] = pd.to_datetime(df["buy_trade_date"])
+        df["sell_trade_date"] = pd.to_datetime(df["sell_trade_date"], errors='coerce')
+        df["pnl"] = pd.to_numeric(df["pnl"], errors="coerce").fillna(0)
+
+        # 📈 Cumulative PnL chart
+        df_closed = df[df["status"] == "CLOSED"].sort_values("sell_trade_date")
+        df_closed["cumulative_pnl"] = df_closed["pnl"].cumsum()
+
+        st.markdown("### 📈 Cumulative PnL Over Time")
+        chart = alt.Chart(df_closed).mark_line(point=True).encode(
+            x=alt.X("sell_trade_date:T", title="Sell Date"),
+            y=alt.Y("cumulative_pnl:Q", title="Cumulative PnL"),
+            tooltip=["symbol", "sell_price", "pnl", "cumulative_pnl"]
+        ).properties(width=700, height=300)
+
+        st.altair_chart(chart, use_container_width=True)
+
+        # 📊 Profit vs Loss distribution
+        st.markdown("### 📊 Profit vs Loss Distribution")
+        df_closed["result"] = df_closed["pnl"].apply(lambda x: "Profit" if x > 0 else "Loss")
+        dist_chart = alt.Chart(df_closed).mark_bar().encode(
+            x=alt.X("result:N", title="Result"),
+            y=alt.Y("count():Q", title="Number of Trades"),
+            color="result:N"
+        ).properties(width=300)
+
+        st.altair_chart(dist_chart, use_container_width=False)
+
+        # 📆 Trades per month
+        st.markdown("### 📅 Trade Frequency by Month")
+        df_closed["month"] = df_closed["buy_trade_date"].dt.to_period("M").astype(str)
+        month_chart = alt.Chart(df_closed).mark_bar().encode(
+            x=alt.X("month:N", title="Month"),
+            y=alt.Y("count():Q", title="Trades"),
+            color=alt.Color("month:N", legend=None)
+        ).properties(width=700)
+
+        st.altair_chart(month_chart, use_container_width=True)
+
+        # 📋 Show table again
+        st.markdown("### 📋 Trade Table")
+        st.dataframe(
+            df[[
+                "symbol", "buy_type", "buy_trade_date", "buy_price",
+                "sell_trade_date", "sell_price", "pnl", "status"
+            ]].sort_values(by="buy_trade_date", ascending=False),
+            use_container_width=True,
+        )
+    else:
+        st.info("No trades logged yet.")
