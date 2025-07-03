@@ -79,3 +79,35 @@ def get_open_price(symbol, base_date):
     except Exception as e:
         print(f"[❌] Failed price for {symbol}: {e}")
         return None
+
+def get_intraday_range(symbol, date_obj):
+    start = date_obj.strftime("%Y-%m-%d")
+    end = (date_obj + timedelta(days=1)).strftime("%Y-%m-%d")  # yfinance needs next day
+
+    data = yf.download(
+        symbol+".NS",
+        start=start,
+        end=end,
+        interval="5m",  # or '15m'
+        progress=False,
+        prepost=False,
+        threads=False
+    )
+
+    if data.empty:
+        print(f"[❌] No intraday data for {symbol} on {start}")
+        return None
+
+    intraday_high = data["High"].max()
+    intraday_low = data["Low"].min()
+    # Reset index for easier handling
+    df = data.reset_index()
+    # Extract timezone from the data
+    data_tz = df['Datetime'].dt.tz
+    # Get today in the same timezone
+    current_day = pd.Timestamp(start, tz=data_tz).normalize().date()
+    print(current_day)
+    today_data = df[df['Datetime'].dt.normalize() == current_day]
+    open_price = today_data.iloc[0]['Open']
+
+    return {"open": round(open_price, 2),"high": round(intraday_high, 2), "low": round(intraday_low, 2)}

@@ -119,3 +119,10 @@ def get_today_sell_signals(signal_date):
 def get_trade_log():
     result = supabase.table("trade_log").select("*").order("buy_trade_date", desc=True).execute()
     return result.data if result.data else []
+
+def getOpentrades():
+    open_trades = supabase.table("trade_log") \
+        .select("*") \
+        .eq("status", "OPEN") \
+        .execute().data
+    return open_trades.data if open_trades.data else []

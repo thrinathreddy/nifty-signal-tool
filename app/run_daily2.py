@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from core.getSignals import process_today_buy_signals, process_today_sell_signals
+from core.getSignals import process_today_buy_signals, process_today_sell_signals, check_target_stoploss
 
 import logging
 from datetime import date, timedelta
@@ -16,8 +16,10 @@ def run_scan2():
     try:
         logging.info("📈 Generating sells...")
         process_today_sell_signals()
+        check_target_stoploss()
     except Exception as e:
         print(f"Error : {e}")
+
 
 
 if __name__ == "__main__":
