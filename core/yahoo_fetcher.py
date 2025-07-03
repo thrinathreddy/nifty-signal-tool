@@ -1,5 +1,6 @@
 import logging
 import requests
+import pandas as pd
 from time import sleep
 from datetime import datetime, timedelta
 import yfinance as yf
@@ -52,11 +53,29 @@ def yahoo_fetch_data(symbol, days=180, retries=3, delay=2, period="12mo", interv
 
 def get_open_price(symbol, base_date):
     try:
-        df = yf.download(symbol+".NS", start=base_date,
-                           end=base_date, interval="1d", auto_adjust=True, progress=False, threads=False)
-        df.columns = df.columns.get_level_values(0)
+        ticker = yf.Ticker(symbol+".NS")
+        df = ticker.history(interval="30m", period="1d")
         print(df)
-        return float(df['Open'].iloc[0]) if not df.empty else None
+        # Reset index for easier handling
+        df = df.reset_index()
+        # Extract timezone from the data
+        data_tz = df['Datetime'].dt.tz
+
+        # Get today in the same timezone
+        today = pd.Timestamp.now(tz=data_tz).normalize()
+        print(today)
+        # Get the first row from today
+        today_data = df[df['Datetime'].dt.normalize() == today]
+
+        if not today_data.empty:
+            open_time = today_data.iloc[0]['Datetime']
+            open_price = today_data.iloc[0]['Open']
+            print(f"Today's Open Time: {open_time}")
+            print(f"Today's Open Price: {open_price}")
+            return open_price
+        else:
+            print("No data available for today.")
+        return None
     except Exception as e:
         print(f"[❌] Failed price for {symbol}: {e}")
         return None
