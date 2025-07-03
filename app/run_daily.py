@@ -8,7 +8,6 @@ from core.indicators import apply_indicators
 from core.strategy import generate_signal
 from core.db_handler import save_signal
 from core.fundamental_analyzer import get_fundamentals, evaluate_fundamentals
-from core.getSignals import process_today_buy_signals, process_today_sell_signals
 import logging
 logging.basicConfig(level=logging.INFO)
 nifty50 = ["ADANIENT", "ADANIPORTS", "APOLLOHOSP", "ASIANPAINT", "AXISBANK", "BAJAJ‑AUTO", "BAJFINANCE", "BAJAJFINSV", "BEL", "BHARTIARTL", "CIPLA", "COALINDIA", "DRREDDY", "EICHERMOT", "ETERNAL", "GRASIM", "HCLTECH", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDUNILVR", "ICICIBANK", "INDUSINDBK", "INFY", "ITC", "JIOFIN", "JSWSTEEL", "KOTAKBANK", "LT", "M&M", "MARUTI", "NESTLEIND", "NTPC", "ONGC", "POWERGRID", "RELIANCE", "SBILIFE", "SHRIRAMFIN", "SBIN", "SUNPHARMA", "TCS", "TATACONSUM", "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN", "TRENT", "ULTRACEMCO", "WIPRO"] # sample list
@@ -47,16 +46,6 @@ def run_scan():
 
         except Exception as e:
             print(f"Error with {symbol}: {e}")
-    try:
-        logging.info("📈 Generating buys...")
-        process_today_buy_signals()
-    except Exception as e:
-        print(f"Error : {e}")
-    try:
-        logging.info("📈 Generating sells...")
-        process_today_sell_signals()
-    except Exception as e:
-        print(f"Error : {e}")
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ import altair as alt
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from run_daily import run_scan
+from run_daily2 import run_scan2
 from core.db_handler import get_signals, get_trade_log
 
 # Streamlit UI config
@@ -37,6 +38,8 @@ if "scan" in query_params and query_params["scan"].lower() == "yes":
     with st.spinner("🔄 Scan triggered from URL..."):
         run_scan()
     st.success("✅ Scan completed via URL trigger!")
+if "logTrades" in query_params and query_params["logTrades"].lower() == "yes":
+    run_scan2()
 
 # Load signals from database
 signals = get_signals() or []
