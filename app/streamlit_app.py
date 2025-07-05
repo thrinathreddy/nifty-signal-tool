@@ -162,24 +162,24 @@ with tab3:
 with tab4:
     st.subheader("📊 Backtest Strategy")
 
+    with st.form("backtest_form"):
+        strategy = st.selectbox("Select Strategy", list(STRATEGY_MAP.keys()), key="strategy")
 
-    strategy = st.selectbox("Select Strategy", list(STRATEGY_MAP.keys()))
+        sorted_stock_items = sorted(STOCKS.items(), key=lambda x: x[0])
+        stock_display_list = [f"{name} ({symbol})" for name, symbol in sorted_stock_items]
+        name_symbol_map = {f"{name} ({symbol})": symbol for name, symbol in sorted_stock_items}
 
-    sorted_stock_items = sorted(STOCKS.items(), key=lambda x: x[0])
-    # Display name + symbol
-    stock_display_list = [f"{name} ({symbol})" for name, symbol in sorted_stock_items]
-    name_symbol_map = {f"{name} ({symbol})": symbol for name, symbol in sorted_stock_items}
+        selected_display = st.selectbox("🔍 Select Stock", stock_display_list, key="stock")
+        selected_symbol = name_symbol_map[selected_display]
 
-    # Streamlit selectbox
-    selected_display = st.selectbox("🔍 Select Stock", stock_display_list)
-    selected_symbol = name_symbol_map[selected_display]
+        period = st.selectbox("Data Period", ["3mo", "6mo", "1y", "2y"], index=2, key="period")
+        share_count = st.number_input("🔢 Share Count per Trade", value=1, min_value=1, step=1, key="shares")
+        stop_loss = st.number_input("🔒 Stop Loss %", value=5.0, min_value=0.0, key="sl")
+        target = st.number_input("🎯 Target %", value=10.0, min_value=0.0, key="target")
 
-    period = st.selectbox("Data Period", ["3mo", "6mo", "1y", "2y"], index=2)
-    share_count = st.number_input("🔢 Share Count per Trade", value=1, min_value=1, step=1)
-    stop_loss = st.number_input("🔒 Stop Loss %", value=5.0, min_value=0.0)
-    target = st.number_input("🎯 Target %", value=10.0, min_value=0.0)
+        submitted = st.form_submit_button("Run Backtest")
 
-    if st.button("Run Backtest"):
+    if submitted:
         trades = run_backtest(selected_symbol, strategy, period, share_count, stop_loss, target)
         if trades:
             df_bt = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "PnL"])
@@ -188,7 +188,6 @@ with tab4:
             df_bt["ExitDate"] = df_bt["Date"].shift(-1).fillna(df_bt["Date"].iloc[-1])
             df_bt["Duration"] = (df_bt["ExitDate"] - df_bt["Date"]).dt.days
 
-            # Metrics
             total_trades = len(df_bt)
             wins = df_bt[df_bt["PnL"] > 0]
             win_ratio = round((len(wins) / total_trades) * 100, 2) if total_trades > 0 else 0
@@ -199,7 +198,6 @@ with tab4:
             max_drawdown = round(drawdown.min(), 2)
             sharpe_ratio = round(df_bt["PnL"].mean() / df_bt["PnL"].std(), 2) if df_bt["PnL"].std() > 0 else 0
 
-            # Display metrics
             st.markdown("### 📋 Backtest Summary")
             col1, col2, col3 = st.columns(3)
             col1.metric("📊 Total Trades", total_trades)
@@ -211,10 +209,7 @@ with tab4:
             col5.metric("📉 Max Drawdown", f"{max_drawdown}")
             col6.metric("📈 Sharpe Ratio", f"{sharpe_ratio}")
 
-            # Chart
             st.markdown("### 📈 Cumulative PnL Over Time")
-            import altair as alt
-
             chart = alt.Chart(df_bt).mark_line(point=True).encode(
                 x="Date:T",
                 y="Cumulative PnL:Q",
@@ -222,9 +217,7 @@ with tab4:
             ).properties(width=700, title=f"Backtest – {selected_symbol.upper()} | Strategy: {strategy}")
             st.altair_chart(chart, use_container_width=True)
 
-            # Table
             st.markdown("### 🧾 Trade Details")
             st.dataframe(df_bt[["Date", "Buy", "Sell", "PnL", "Cumulative PnL", "Duration"]])
         else:
             st.warning("⚠️ No trades were executed for this strategy in the selected period.")
-
