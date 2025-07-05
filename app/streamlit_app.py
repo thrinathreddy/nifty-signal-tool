@@ -55,21 +55,6 @@ def format_date(date_str):
     except Exception:
         return date_str
 
-# 📅 Create dropdown for signal date (last 7 days)
-last_7_days = [date.today() - timedelta(days=i) for i in range(7)]
-last_7_days_str = [d.strftime("%Y-%m-%d") for d in reversed(last_7_days)]
-selected_date = st.selectbox("📅 Select Signal Date", last_7_days_str, index=6)
-
-# Filter signals for selected date
-filtered_signals = [s for s in signals if s.get("date") == selected_date]
-short_term = [s for s in filtered_signals if s.get("type") == "BUY"]
-long_term = [s for s in filtered_signals if s.get("type") == "LONG_TERM_BUY"]
-
-# Prepare trade logs
-open_trades = [t for t in trade_log if t["status"] == "OPEN"]
-closed_trades = [t for t in trade_log if t["status"] == "CLOSED"]
-total_pnl = round(sum(float(t.get("pnl", 0)) for t in closed_trades), 2)
-
 # Create tabs
 tab1, tab2, tab3, tab4 = st.tabs([
     "📅 Short-Term Signals",
@@ -80,17 +65,40 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 # --- TAB 1: SHORT TERM SIGNALS ---
 with tab1:
+    st.subheader("📅 Short-Term Signals")
+
+    signals = get_signals() or []
+
+    last_7_days = [date.today() - timedelta(days=i) for i in range(7)]
+    last_7_days_str = [d.strftime("%Y-%m-%d") for d in reversed(last_7_days)]
+    selected_date = st.selectbox("📅 Select Signal Date", last_7_days_str, index=6, key="short_term_date")
+
+    filtered_signals = [s for s in signals if s.get("date") == selected_date]
+    short_term = [s for s in filtered_signals if s.get("type") == "BUY"]
+
     st.subheader(f"Technical BUY Signals on {format_date(selected_date)}")
     if short_term:
         st.success(f"📊 {len(short_term)} short-term signals")
         for signal in short_term:
-            st.markdown(f"✅ **{signal['symbol']}** — 📰 *{str(signal.get('market_sentiment') or '').capitalize()} sentiment*")
+            st.markdown(
+                f"✅ **{signal['symbol']}** — 📰 *{str(signal.get('market_sentiment') or '').capitalize()} sentiment*")
     else:
         st.info("No short-term signals for this day.")
 
 # --- TAB 2: LONG TERM SIGNALS ---
 with tab2:
-    st.subheader(f"Long-Term Investment Picks on {format_date(selected_date)}")
+    st.subheader("🏦 Long-Term Investment Picks")
+
+    signals = get_signals() or []
+
+    last_7_days = [date.today() - timedelta(days=i) for i in range(7)]
+    last_7_days_str = [d.strftime("%Y-%m-%d") for d in reversed(last_7_days)]
+    selected_date = st.selectbox("📅 Select Signal Date", last_7_days_str, index=6, key="long_term_date")
+
+    filtered_signals = [s for s in signals if s.get("date") == selected_date]
+    long_term = [s for s in filtered_signals if s.get("type") == "LONG_TERM_BUY"]
+
+    st.subheader(f"Long-Term Picks on {format_date(selected_date)}")
     if long_term:
         st.success(f"🏆 {len(long_term)} fundamentally strong picks")
         for signal in long_term:
@@ -101,6 +109,11 @@ with tab2:
 # --- TAB 3: TRADE LOG & PnL ---
 with tab3:
     st.subheader("📘 Trade Log & Performance Summary")
+
+    trade_log = get_trade_log() or []
+    open_trades = [t for t in trade_log if t["status"] == "OPEN"]
+    closed_trades = [t for t in trade_log if t["status"] == "CLOSED"]
+    total_pnl = round(sum(float(t.get("pnl", 0)) for t in closed_trades), 2)
 
     col1, col2, col3 = st.columns(3)
     col1.metric("📂 Total Trades", len(trade_log))
