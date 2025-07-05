@@ -14,6 +14,7 @@ from run_daily2 import run_scan2
 from core.db_handler import get_signals, get_trade_log
 from strategies.indicator_builder import run_backtest
 from strategies.strategy_registry import STRATEGY_MAP
+from strategies.stockSymbols import STOCKS
 
 # Streamlit UI config
 st.set_page_config(page_title="Nifty50 Signal Dashboard", layout="centered")
@@ -163,17 +164,34 @@ with tab4:
 
 
     strategy = st.selectbox("Select Strategy", list(STRATEGY_MAP.keys()))
-    symbol = st.text_input("Enter Stock Symbol (e.g. RELIANCE)", "RELIANCE")
+
+    # Format for display: "Company Name (Symbol)"
+    formatted_stocks = [f"{name} ({symbol})" for name, symbol in STOCKS.items()]
+
+    # Pagination
+    PAGE_SIZE = 10
+    total_pages = (len(formatted_stocks) - 1) // PAGE_SIZE + 1
+    selected_page = st.selectbox("📄 Page", list(range(1, total_pages + 1)))
+    start_idx = (selected_page - 1) * PAGE_SIZE
+    end_idx = start_idx + PAGE_SIZE
+    page_items = formatted_stocks[start_idx:end_idx]
+
+    # Searchable dropdown
+    selected_display = st.selectbox("🔍 Select Stock", options=page_items)
+
+    # Extract symbol from selection
+    symbol = selected_display.split("(")[-1].replace(")", "").strip()
+
     period = st.selectbox("Data Period", ["3mo", "6mo", "1y", "2y"], index=2)
+    share_count = st.number_input("🔢 Share Count per Trade", value=1, min_value=1, step=1)
+    stop_loss = st.number_input("🔒 Stop Loss %", value=5.0, min_value=0.0)
+    target = st.number_input("🎯 Target %", value=10.0, min_value=0.0)
 
     if st.button("Run Backtest"):
-        trades = run_backtest(symbol, strategy, period)
+        trades = run_backtest(symbol, strategy, period, share_count, stop_loss, target)
         if trades:
-            df_bt = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell"])
-            df_bt["PnL"] = df_bt["Sell"] - df_bt["Buy"]
+            df_bt = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "PnL"])
             df_bt["Cumulative PnL"] = df_bt["PnL"].cumsum()
-
-            # Convert to datetime if not already
             df_bt["Date"] = pd.to_datetime(df_bt["Date"])
             df_bt["ExitDate"] = df_bt["Date"].shift(-1).fillna(df_bt["Date"].iloc[-1])
             df_bt["Duration"] = (df_bt["ExitDate"] - df_bt["Date"]).dt.days
@@ -181,26 +199,20 @@ with tab4:
             # Metrics
             total_trades = len(df_bt)
             wins = df_bt[df_bt["PnL"] > 0]
-            losses = df_bt[df_bt["PnL"] <= 0]
             win_ratio = round((len(wins) / total_trades) * 100, 2) if total_trades > 0 else 0
             total_pnl = round(df_bt["PnL"].sum(), 2)
             avg_duration = round(df_bt["Duration"].mean(), 2)
-
-            # Max Drawdown
             running_max = df_bt["Cumulative PnL"].cummax()
             drawdown = df_bt["Cumulative PnL"] - running_max
             max_drawdown = round(drawdown.min(), 2)
+            sharpe_ratio = round(df_bt["PnL"].mean() / df_bt["PnL"].std(), 2) if df_bt["PnL"].std() > 0 else 0
 
-            # Sharpe Ratio (assume 0% risk-free rate and daily returns)
-            daily_returns = df_bt["PnL"]
-            sharpe_ratio = round(daily_returns.mean() / daily_returns.std(), 2) if daily_returns.std() > 0 else 0
-
-            # Summary
+            # Display metrics
             st.markdown("### 📋 Backtest Summary")
             col1, col2, col3 = st.columns(3)
             col1.metric("📊 Total Trades", total_trades)
             col2.metric("✅ Win Ratio", f"{win_ratio}%")
-            col3.metric("💰 Total PnL", f"{total_pnl:+.2f}")
+            col3.metric("💰 Total PnL (₹)", f"{total_pnl:+.2f}")
 
             col4, col5, col6 = st.columns(3)
             col4.metric("⏱ Avg Duration", f"{avg_duration} days")
@@ -209,16 +221,18 @@ with tab4:
 
             # Chart
             st.markdown("### 📈 Cumulative PnL Over Time")
+            import altair as alt
+
             chart = alt.Chart(df_bt).mark_line(point=True).encode(
                 x="Date:T",
                 y="Cumulative PnL:Q",
                 tooltip=["Date", "Buy", "Sell", "PnL", "Cumulative PnL"]
-            ).properties(title=f"Backtest - {strategy}", width=700)
+            ).properties(width=700, title=f"Backtest – {symbol.upper()} | Strategy: {strategy}")
             st.altair_chart(chart, use_container_width=True)
 
-            # Trades Table
+            # Table
             st.markdown("### 🧾 Trade Details")
             st.dataframe(df_bt[["Date", "Buy", "Sell", "PnL", "Cumulative PnL", "Duration"]])
         else:
-            st.warning("No trades were executed for this strategy in the selected period.")
+            st.warning("⚠️ No trades were executed for this strategy in the selected period.")
 

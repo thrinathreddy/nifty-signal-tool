@@ -5,6 +5,7 @@ from strategies.strategy_registry import STRATEGY_MAP
 
 import logging
 logging.basicConfig(level=logging.INFO)
+MIN_AVG_VOLUME = 100000
 
 def prepare_indicators(df, strategy_name):
     if df is None or df.empty or len(df) < 20:
@@ -54,29 +55,45 @@ def prepare_indicators(df, strategy_name):
 
     return df
 
-def run_backtest(symbol, strategy_name, period):
-    data = yf.download(symbol, period=period, interval="1d", auto_adjust=True, progress=False)
-    data.columns = data.columns.get_level_values(0)
-    logging.info("downloaded data length: " + str(len(data)))
-    data = data.rename(columns={"Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"})
+def run_backtest(symbol, strategy_name, period, share_count=1, stop_loss_pct=5.0, target_pct=10.0):
+    data = yf.download(symbol + ".NS", period=period, interval="1d", auto_adjust=True, progress=False)
+    if len(data) < 2:
+        return []
 
+    data.columns = data.columns.get_level_values(0)
+    if data["Volume"].mean() < MIN_AVG_VOLUME:
+        print(f"⚠️ Skipping {symbol} due to low avg volume: {data['Volume'].mean():,.0f}")
+        return []
+
+    data = data.rename(columns={"Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"})
     data = prepare_indicators(data, strategy_name)
-    signals = []
+
+    trades = []
     position = None
     buy_price = 0
     for i in range(len(data)):
         sub_df = data.iloc[:i + 1]
+        today = sub_df.iloc[-1]
+        close = today["close"]
+
+        if position == "LONG":
+            pct_change = (close - buy_price) / buy_price * 100
+            if pct_change >= target_pct or pct_change <= -stop_loss_pct:
+                pnl = (close - buy_price) * share_count
+                trades[-1] = (*trades[-1][:3], close, pnl)
+                position = None
+                continue
+
         signal = STRATEGY_MAP[strategy_name].generate_signal(sub_df)
         if signal == "BUY" and position is None:
-            buy_price = sub_df.iloc[-1]["close"]
+            buy_price = close
             position = "LONG"
-            signals.append((sub_df.index[-1], signal, buy_price, None))
+            trades.append((sub_df.index[-1], signal, buy_price, None, None))
+
         elif signal == "SELL" and position == "LONG":
-            sell_price = sub_df.iloc[-1]["close"]
-            pnl = sell_price - buy_price
-            signals[-1] = (*signals[-1][:3], sell_price)
+            pnl = (close - buy_price) * share_count
+            trades[-1] = (*trades[-1][:3], close, pnl)
             position = None
 
-    trades = [s for s in signals if s[-1] is not None]
-    return trades
+    return [t for t in trades if t[-1] is not None]
 
