@@ -17,23 +17,6 @@ def process_today_buy_signals():
             print(f"[❌] Could not fetch price for {symbol}")
 
 
-def process_today_sell_signals():
-    signal_date = date.today() - timedelta(days=1)
-    sell_signals = get_today_sell_signals(signal_date)
-
-    for entry in sell_signals:
-        symbol = entry['symbol']
-        sell_type = entry['type']
-        sell_price = get_open_price(symbol, date.today())
-        if sell_price:
-            if sell_type == 'SELL':
-                close_trade_sell(symbol, 'BUY', signal_date, sell_price)
-            else:
-                close_trade_sell(symbol, 'LONG_TERM_BUY', signal_date, sell_price)
-            break  # Close only one open trade per signal
-        else:
-            print(f"[❌] No price for {symbol}")
-
 def check_target_stoploss():
     # Step 1: Get open trades from Supabase
     open_trades = getOpentrades()
@@ -46,11 +29,11 @@ def check_target_stoploss():
 
         # Step 2: Define target and stop-loss
         if buy_type == "BUY":
-            target = round(buy_price * 1.03, 2)
-            stop = round(buy_price * 0.98, 2)
+            target = round(buy_price * 1.02, 2)
+            stop = round(buy_price * 0.99, 2)
         else:  # LONG_TERM_BUY
-            target = round(buy_price * 1.15, 2)
-            stop = round(buy_price * 0.96, 2)
+            target = round(buy_price * 1.02, 2)
+            stop = round(buy_price * 0.98, 2)
 
         # Step 3: Get today's intraday high/low
         price_info = get_intraday_range(symbol, date.today())

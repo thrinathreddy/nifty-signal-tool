@@ -1,5 +1,8 @@
 import sys
 import os
+
+from core.marketSentiment_analyzer import get_or_cache_sentiment
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from core.nifty_fetcher import fetch_data
 from core.nse_fetcher import nse_fetch_data
@@ -31,18 +34,16 @@ def run_scan():
             logging.info("📈 Generating signal...")
             signal = generate_signal(df)
             logging.info(f"✅ Signal generated: {signal}")
+            sentiment = get_or_cache_sentiment(symbol)
+            logging.info(f"✅ Sentiment generated: {sentiment}")
             if signal == "BUY":
-                save_signal(symbol, signal)
-            if signal == "SELL":
-                save_signal(symbol, signal)
+                save_signal(symbol, signal, sentiment)
 
             # also check long-term signal
             roe, de, eps = get_fundamentals(symbol+".NS")
             ltsignal = evaluate_fundamentals(roe, de, eps)
             if ltsignal == "LONG_TERM_BUY":
-                save_signal(symbol, ltsignal)
-            if ltsignal == "LONG_TERM_SELL":
-                save_signal(symbol, ltsignal)
+                save_signal(symbol, ltsignal, sentiment)
 
         except Exception as e:
             print(f"Error with {symbol}: {e}")

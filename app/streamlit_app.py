@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, date
 import pandas as pd
 import altair as alt
 
@@ -15,56 +15,58 @@ from core.db_handler import get_signals, get_trade_log
 # Streamlit UI config
 st.set_page_config(page_title="Nifty50 Signal Dashboard", layout="centered")
 
-# App title and intro
+# App title
 st.title("📈 Nifty50 Signal Dashboard")
-st.markdown(
-    """
-    Welcome to your custom stock signal scanner tool!  
-    This dashboard shows:
-    - **Short-term technical BUY signals**
-    - **Long-term investment picks** based on fundamentals
-    """
-)
+st.markdown("""
+Welcome to your custom stock signal scanner tool!  
+This dashboard shows:
+- **Short-term technical BUY signals**
+- **Long-term investment picks** based on fundamentals
+""")
 
-# Button to trigger scan manually
+# Run scanner manually
 if st.button("🔁 Run Scanner"):
     with st.spinner("Running scan on all Nifty50 stocks..."):
         run_scan()
     st.success("✅ Scan completed successfully!")
 
-# 🔍 URL query parameter support (?scan=yes)
+# Query params for automation
 query_params = st.query_params
 if "scan" in query_params and query_params["scan"].lower() == "yes":
     with st.spinner("🔄 Scan triggered from URL..."):
         run_scan()
     st.success("✅ Scan completed via URL trigger!")
+
 if "logTrades" in query_params and query_params["logTrades"].lower() == "yes":
     run_scan2()
 
-# Load signals from database
+# Load all signals and trade logs
 signals = get_signals() or []
+trade_log = get_trade_log() or []
 
-# Format helper
+# Helper: format date
 def format_date(date_str):
     try:
         return datetime.strptime(date_str, "%Y-%m-%d").strftime("%b %d, %Y")
     except Exception:
-        return date_str  # fallback
+        return date_str
 
-# Separate signals
-short_term = [s for s in signals if s.get("type") == "BUY"]
-long_term = [s for s in signals if s.get("type") == "LONG_TERM_BUY"]
+# 📅 Create dropdown for signal date (last 7 days)
+last_7_days = [date.today() - timedelta(days=i) for i in range(7)]
+last_7_days_str = [d.strftime("%Y-%m-%d") for d in reversed(last_7_days)]
+selected_date = st.selectbox("📅 Select Signal Date", last_7_days_str, index=6)
 
-trade_log = get_trade_log() or []
+# Filter signals for selected date
+filtered_signals = [s for s in signals if s.get("date") == selected_date]
+short_term = [s for s in filtered_signals if s.get("type") == "BUY"]
+long_term = [s for s in filtered_signals if s.get("type") == "LONG_TERM_BUY"]
 
-# Separate open and closed trades
+# Prepare trade logs
 open_trades = [t for t in trade_log if t["status"] == "OPEN"]
 closed_trades = [t for t in trade_log if t["status"] == "CLOSED"]
-
-# Calculate total PnL for closed trades
 total_pnl = round(sum(float(t.get("pnl", 0)) for t in closed_trades), 2)
 
-# Create tabs for display
+# Create tabs
 tab1, tab2, tab3 = st.tabs([
     "📅 Short-Term Signals",
     "🏦 Long-Term Investment Picks",
@@ -73,24 +75,25 @@ tab1, tab2, tab3 = st.tabs([
 
 # --- TAB 1: SHORT TERM SIGNALS ---
 with tab1:
-    st.subheader("Today's Technical BUY Signals")
+    st.subheader(f"Technical BUY Signals on {format_date(selected_date)}")
     if short_term:
-        st.success(f"📊 {len(short_term)} short-term opportunities found.")
+        st.success(f"📊 {len(short_term)} short-term signals")
         for signal in short_term:
-            st.markdown(f"🔹 **{signal['symbol']}** — `{format_date(signal['date'])}`")
+            st.markdown(f"✅ **{signal['symbol']}** — 📰 *{signal.get('market_sentiment', '').capitalize()} sentiment*")
     else:
-        st.info("No short-term signals available yet. Run the scanner to generate signals.")
+        st.info("No short-term signals for this day.")
 
 # --- TAB 2: LONG TERM SIGNALS ---
 with tab2:
-    st.subheader("Long-Term Investment Picks")
+    st.subheader(f"Long-Term Investment Picks on {format_date(selected_date)}")
     if long_term:
-        st.success(f"🏆 {len(long_term)} fundamentally strong stocks identified.")
+        st.success(f"🏆 {len(long_term)} fundamentally strong picks")
         for signal in long_term:
-            st.markdown(f"✅ **{signal['symbol']}** — `{format_date(signal['date'])}`")
+            st.markdown(f"✅ **{signal['symbol']}** — 📰 *{signal.get('market_sentiment', '').capitalize()} sentiment*")
     else:
-        st.info("No long-term picks available yet. Try rerunning the fundamental analyzer.")
+        st.info("No long-term picks for this day.")
 
+# --- TAB 3: TRADE LOG & PnL ---
 with tab3:
     st.subheader("📘 Trade Log & Performance Summary")
 
@@ -102,7 +105,7 @@ with tab3:
     if trade_log:
         df = pd.DataFrame(trade_log)
         df["buy_trade_date"] = pd.to_datetime(df["buy_trade_date"])
-        df["sell_trade_date"] = pd.to_datetime(df["sell_trade_date"], errors='coerce')
+        df["sell_trade_date"] = pd.to_datetime(df["sell_trade_date"], errors="coerce")
         df["pnl"] = pd.to_numeric(df["pnl"], errors="coerce").fillna(0)
 
         # 📈 Cumulative PnL chart
@@ -118,7 +121,7 @@ with tab3:
 
         st.altair_chart(chart, use_container_width=True)
 
-        # 📊 Profit vs Loss distribution
+        # 📊 Profit vs Loss
         st.markdown("### 📊 Profit vs Loss Distribution")
         df_closed["result"] = df_closed["pnl"].apply(lambda x: "Profit" if x > 0 else "Loss")
         dist_chart = alt.Chart(df_closed).mark_bar().encode(
@@ -140,13 +143,11 @@ with tab3:
 
         st.altair_chart(month_chart, use_container_width=True)
 
-        # 📋 Show table again
+        # 📋 Trade Table
         st.markdown("### 📋 Trade Table")
         st.dataframe(
-            df[[
-                "symbol", "buy_type", "buy_trade_date", "buy_price",
-                "sell_trade_date", "sell_price", "pnl", "status"
-            ]].sort_values(by="buy_trade_date", ascending=False),
+            df[[ "symbol", "buy_type", "buy_trade_date", "buy_price",
+                 "sell_trade_date", "sell_price", "pnl", "status" ]].sort_values(by="buy_trade_date", ascending=False),
             use_container_width=True,
         )
     else:

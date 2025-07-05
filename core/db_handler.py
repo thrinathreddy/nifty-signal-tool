@@ -6,7 +6,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def save_signal(symbol, signal_type):
+def save_signal(symbol, signal_type, market_sentiment):
     today = str(date.today())
 
     # First, check if this signal already exists
@@ -25,7 +25,8 @@ def save_signal(symbol, signal_type):
     supabase.table("signals").insert({
         "symbol": symbol,
         "date": today,
-        "type": signal_type
+        "type": signal_type,
+        "market_sentiment": market_sentiment
     }).execute()
 
     print(f"[✅] Signal saved: {symbol} ({signal_type}) on {today}")
@@ -33,6 +34,14 @@ def save_signal(symbol, signal_type):
 def get_signals():
     response = supabase.table("signals").select("*").order("date", desc=True).execute()
     return response.data
+def get_signal(symbol, today, signal_type):
+    result = supabase.table("signals") \
+        .select("market_sentiment") \
+        .eq("symbol", symbol) \
+        .eq("date", today) \
+        .eq("type", signal_type) \
+        .execute()
+    return result
 
 def insert_trade_buy(symbol, signal_date, buy_price, buy_type):
     buy_trade_date = signal_date + timedelta(days=1)
