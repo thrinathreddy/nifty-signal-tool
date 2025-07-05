@@ -11,6 +11,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from run_daily import run_scan
 from run_daily2 import run_scan2
 from core.db_handler import get_signals, get_trade_log
+from strategies.indicator_builder import run_backtest
+from strategies.strategy_registry import STRATEGY_MAP
 
 # Streamlit UI config
 st.set_page_config(page_title="Nifty50 Signal Dashboard", layout="centered")
@@ -67,10 +69,11 @@ closed_trades = [t for t in trade_log if t["status"] == "CLOSED"]
 total_pnl = round(sum(float(t.get("pnl", 0)) for t in closed_trades), 2)
 
 # Create tabs
-tab1, tab2, tab3 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     "📅 Short-Term Signals",
     "🏦 Long-Term Investment Picks",
-    "📘 Trade Log & Performance"
+    "📘 Trade Log & Performance",
+    "🧪 Backtest Strategies"
 ])
 
 # --- TAB 1: SHORT TERM SIGNALS ---
@@ -152,3 +155,28 @@ with tab3:
         )
     else:
         st.info("No trades logged yet.")
+
+
+with tab4:
+    st.subheader("📊 Backtest Strategy")
+
+
+    strategy = st.selectbox("Select Strategy", list(STRATEGY_MAP.keys()))
+    symbol = st.text_input("Enter Stock Symbol (e.g. RELIANCE)", "RELIANCE")
+    period = st.selectbox("Data Period", ["3mo", "6mo", "1y", "2y"], index=2)
+
+    if st.button("Run Backtest"):
+        trades = run_backtest(symbol, strategy, period)
+        if trades:
+            df_bt = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell"])
+            df_bt["PnL"] = df_bt["Sell"] - df_bt["Buy"]
+            df_bt["Cumulative PnL"] = df_bt["PnL"].cumsum()
+            st.dataframe(df_bt)
+            chart = alt.Chart(df_bt).mark_line(point=True).encode(
+                x="Date:T",
+                y="Cumulative PnL:Q",
+                tooltip=["Date", "Buy", "Sell", "PnL", "Cumulative PnL"]
+            ).properties(title=f"Backtest - {strategy}", width=700)
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            st.warning("No trades were executed for this strategy in the selected period.")
