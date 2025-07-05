@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 
 from core.marketSentiment_analyzer import get_or_cache_sentiment
 
@@ -11,12 +12,12 @@ from core.indicators import apply_indicators
 from core.strategy import generate_signal
 from core.db_handler import save_signal
 from core.fundamental_analyzer import get_fundamentals, evaluate_fundamentals
+from strategies.stockSymbols import STOCKS
 import logging
 logging.basicConfig(level=logging.INFO)
-nifty50 = ["ADANIENT", "ADANIPORTS", "APOLLOHOSP", "ASIANPAINT", "AXISBANK", "BAJAJ‑AUTO", "BAJFINANCE", "BAJAJFINSV", "BEL", "BHARTIARTL", "CIPLA", "COALINDIA", "DRREDDY", "EICHERMOT", "ETERNAL", "GRASIM", "HCLTECH", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDUNILVR", "ICICIBANK", "INDUSINDBK", "INFY", "ITC", "JIOFIN", "JSWSTEEL", "KOTAKBANK", "LT", "M&M", "MARUTI", "NESTLEIND", "NTPC", "ONGC", "POWERGRID", "RELIANCE", "SBILIFE", "SHRIRAMFIN", "SBIN", "SUNPHARMA", "TCS", "TATACONSUM", "TATAMOTORS", "TATASTEEL", "TECHM", "TITAN", "TRENT", "ULTRACEMCO", "WIPRO"] # sample list
 def run_scan():
     print("inside run scan")
-    for symbol in nifty50:
+    for name, symbol in STOCKS.items():
         try:
             #df1 = nse_fetch_data(symbol)
             df = yahoo_fetch_data(symbol)
@@ -26,6 +27,9 @@ def run_scan():
             # After downloading or loading your DataFrame
             logging.info("downloaded data...")
             df.columns = df.columns.get_level_values(0)
+            if df["Volume"].mean() < 100000:
+                print(f"⚠️ Skipping {symbol} due to low avg volume: {df['Volume'].mean():,.0f}")
+                return []
             logging.info(f"✅ Columns after flatten: {df.columns.tolist()}")
             logging.info("📊 Applying indicators...")
             df = apply_indicators(df)
@@ -44,7 +48,7 @@ def run_scan():
             ltsignal = evaluate_fundamentals(roe, de, eps)
             if ltsignal == "LONG_TERM_BUY":
                 save_signal(symbol, ltsignal, sentiment)
-
+            time.sleep(0.5)  # Sleep to avoid API throttling
         except Exception as e:
             print(f"Error with {symbol}: {e}")
 

@@ -165,22 +165,14 @@ with tab4:
 
     strategy = st.selectbox("Select Strategy", list(STRATEGY_MAP.keys()))
 
-    # Format for display: "Company Name (Symbol)"
-    formatted_stocks = [f"{name} ({symbol})" for name, symbol in STOCKS.items()]
+    sorted_stock_items = sorted(STOCKS.items(), key=lambda x: x[0])
+    # Display name + symbol
+    stock_display_list = [f"{name} ({symbol})" for name, symbol in sorted_stock_items]
+    name_symbol_map = {f"{name} ({symbol})": symbol for name, symbol in sorted_stock_items}
 
-    # Pagination
-    PAGE_SIZE = 10
-    total_pages = (len(formatted_stocks) - 1) // PAGE_SIZE + 1
-    selected_page = st.selectbox("📄 Page", list(range(1, total_pages + 1)))
-    start_idx = (selected_page - 1) * PAGE_SIZE
-    end_idx = start_idx + PAGE_SIZE
-    page_items = formatted_stocks[start_idx:end_idx]
-
-    # Searchable dropdown
-    selected_display = st.selectbox("🔍 Select Stock", options=page_items)
-
-    # Extract symbol from selection
-    symbol = selected_display.split("(")[-1].replace(")", "").strip()
+    # Streamlit selectbox
+    selected_display = st.selectbox("🔍 Select Stock", stock_display_list)
+    selected_symbol = name_symbol_map[selected_display]
 
     period = st.selectbox("Data Period", ["3mo", "6mo", "1y", "2y"], index=2)
     share_count = st.number_input("🔢 Share Count per Trade", value=1, min_value=1, step=1)
@@ -188,7 +180,7 @@ with tab4:
     target = st.number_input("🎯 Target %", value=10.0, min_value=0.0)
 
     if st.button("Run Backtest"):
-        trades = run_backtest(symbol, strategy, period, share_count, stop_loss, target)
+        trades = run_backtest(selected_symbol, strategy, period, share_count, stop_loss, target)
         if trades:
             df_bt = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "PnL"])
             df_bt["Cumulative PnL"] = df_bt["PnL"].cumsum()
@@ -227,7 +219,7 @@ with tab4:
                 x="Date:T",
                 y="Cumulative PnL:Q",
                 tooltip=["Date", "Buy", "Sell", "PnL", "Cumulative PnL"]
-            ).properties(width=700, title=f"Backtest – {symbol.upper()} | Strategy: {strategy}")
+            ).properties(width=700, title=f"Backtest – {selected_symbol.upper()} | Strategy: {strategy}")
             st.altair_chart(chart, use_container_width=True)
 
             # Table
