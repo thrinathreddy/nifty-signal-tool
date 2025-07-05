@@ -7,6 +7,8 @@ from core.backtester import backtest
 
 
 def prepare_indicators(df, strategy_name):
+    if df is None or df.empty or len(df) < 20:
+        return df  # Not enough data, return as is
     df = df.copy()
 
     # Basic indicators used across many strategies
@@ -55,6 +57,7 @@ def prepare_indicators(df, strategy_name):
 def run_backtest(symbol, strategy_name, period):
     data = yf.download(symbol, period=period, interval="1d", auto_adjust=True, progress=False)
     data.columns = data.columns.get_level_values(0)
+    print("data length"+len(data))
     data = data.rename(columns={"Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"})
 
     data = prepare_indicators(data, strategy_name)
