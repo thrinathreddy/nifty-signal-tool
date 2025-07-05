@@ -195,42 +195,48 @@ with tab4:
     if submitted:
         trades = run_backtest(selected_symbol, strategy, period, share_count, stop_loss, target)
         if trades:
-            df_bt = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "PnL"])
-            df_bt["Cumulative PnL"] = df_bt["PnL"].cumsum()
+            df_bt = pd.DataFrame(trades, columns=[
+                "Date", "Signal", "Buy", "Sell",
+                "Gross PnL", "Brokerage", "GST", "Net PnL"
+            ])
             df_bt["Date"] = pd.to_datetime(df_bt["Date"])
+            df_bt["Cumulative Net PnL"] = df_bt["Net PnL"].cumsum()
             df_bt["ExitDate"] = df_bt["Date"].shift(-1).fillna(df_bt["Date"].iloc[-1])
             df_bt["Duration"] = (df_bt["ExitDate"] - df_bt["Date"]).dt.days
 
             total_trades = len(df_bt)
-            wins = df_bt[df_bt["PnL"] > 0]
+            wins = df_bt[df_bt["Net PnL"] > 0]
             win_ratio = round((len(wins) / total_trades) * 100, 2) if total_trades > 0 else 0
-            total_pnl = round(df_bt["PnL"].sum(), 2)
+            total_net_pnl = round(df_bt["Net PnL"].sum(), 2)
             avg_duration = round(df_bt["Duration"].mean(), 2)
-            running_max = df_bt["Cumulative PnL"].cummax()
-            drawdown = df_bt["Cumulative PnL"] - running_max
+            running_max = df_bt["Cumulative Net PnL"].cummax()
+            drawdown = df_bt["Cumulative Net PnL"] - running_max
             max_drawdown = round(drawdown.min(), 2)
-            sharpe_ratio = round(df_bt["PnL"].mean() / df_bt["PnL"].std(), 2) if df_bt["PnL"].std() > 0 else 0
+            sharpe_ratio = round(df_bt["Net PnL"].mean() / df_bt["Net PnL"].std(), 2) if df_bt["Net PnL"].std() > 0 else 0
 
             st.markdown("### 📋 Backtest Summary")
             col1, col2, col3 = st.columns(3)
             col1.metric("📊 Total Trades", total_trades)
             col2.metric("✅ Win Ratio", f"{win_ratio}%")
-            col3.metric("💰 Total PnL (₹)", f"{total_pnl:+.2f}")
+            col3.metric("💰 Net PnL (₹)", f"{total_net_pnl:+.2f}")
 
             col4, col5, col6 = st.columns(3)
             col4.metric("⏱ Avg Duration", f"{avg_duration} days")
             col5.metric("📉 Max Drawdown", f"{max_drawdown}")
             col6.metric("📈 Sharpe Ratio", f"{sharpe_ratio}")
 
-            st.markdown("### 📈 Cumulative PnL Over Time")
+            st.markdown("### 📈 Cumulative Net PnL Over Time")
             chart = alt.Chart(df_bt).mark_line(point=True).encode(
                 x="Date:T",
-                y="Cumulative PnL:Q",
-                tooltip=["Date", "Buy", "Sell", "PnL", "Cumulative PnL"]
+                y="Cumulative Net PnL:Q",
+                tooltip=["Date", "Buy", "Sell", "Gross PnL", "Net PnL", "Cumulative Net PnL"]
             ).properties(width=700, title=f"Backtest – {selected_symbol.upper()} | Strategy: {strategy}")
             st.altair_chart(chart, use_container_width=True)
 
             st.markdown("### 🧾 Trade Details")
-            st.dataframe(df_bt[["Date", "Buy", "Sell", "PnL", "Cumulative PnL", "Duration"]])
+            st.dataframe(df_bt[[
+                "Date", "Buy", "Sell", "Gross PnL",
+                "Brokerage", "GST", "Net PnL", "Cumulative Net PnL", "Duration"
+            ]])
         else:
             st.warning("⚠️ No trades were executed for this strategy in the selected period.")

@@ -76,7 +76,7 @@ def run_backtest(symbol, strategy_name, period, share_count=1, stop_loss_pct=5.0
     buy_price = 0
 
     BROKERAGE_RATE = 0.0003  # 0.03%
-    GST_RATE = 0.18  # 18% on brokerage
+    GST_RATE = 0.18  # 18% GST on brokerage
 
     for i in range(len(data)):
         sub_df = data.iloc[:i + 1]
@@ -92,7 +92,11 @@ def run_backtest(symbol, strategy_name, period, share_count=1, stop_loss_pct=5.0
                 gross_pnl = (close - buy_price) * share_count
                 net_pnl = round(gross_pnl - brokerage - gst, 2)
 
-                trades[-1] = (*trades[-1][:3], close, net_pnl)
+                trades[-1] = (
+                    sub_df.index[-1], "EXIT", buy_price, close,
+                    round(gross_pnl, 2), round(brokerage, 2),
+                    round(gst, 2), net_pnl
+                )
                 position = None
                 continue
 
@@ -100,7 +104,7 @@ def run_backtest(symbol, strategy_name, period, share_count=1, stop_loss_pct=5.0
         if signal == "BUY" and position is None:
             buy_price = close
             position = "LONG"
-            trades.append((sub_df.index[-1], signal, buy_price, None, None))
+            trades.append((sub_df.index[-1], signal, buy_price, None, None, None, None, None))
 
         elif signal == "SELL" and position == "LONG":
             turnover = (buy_price + close) * share_count
@@ -109,7 +113,11 @@ def run_backtest(symbol, strategy_name, period, share_count=1, stop_loss_pct=5.0
             gross_pnl = (close - buy_price) * share_count
             net_pnl = round(gross_pnl - brokerage - gst, 2)
 
-            trades[-1] = (*trades[-1][:3], close, net_pnl)
+            trades[-1] = (
+                sub_df.index[-1], signal, buy_price, close,
+                round(gross_pnl, 2), round(brokerage, 2),
+                round(gst, 2), net_pnl
+            )
             position = None
 
     return [t for t in trades if t[-1] is not None]
