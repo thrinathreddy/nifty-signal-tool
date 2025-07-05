@@ -3,8 +3,8 @@ import yfinance as yf
 import pandas as pd
 from strategies.strategy_registry import STRATEGY_MAP
 
-from core.backtester import backtest
-
+import logging
+logging.basicConfig(level=logging.INFO)
 
 def prepare_indicators(df, strategy_name):
     if df is None or df.empty or len(df) < 20:
@@ -57,7 +57,7 @@ def prepare_indicators(df, strategy_name):
 def run_backtest(symbol, strategy_name, period):
     data = yf.download(symbol, period=period, interval="1d", auto_adjust=True, progress=False)
     data.columns = data.columns.get_level_values(0)
-    print("data length: " + str(len(data)))
+    logging.info("downloaded data length: " + str(len(data)))
     data = data.rename(columns={"Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"})
 
     data = prepare_indicators(data, strategy_name)

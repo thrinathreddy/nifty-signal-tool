@@ -4,6 +4,7 @@ import sys
 from datetime import datetime, timedelta, date
 import pandas as pd
 import altair as alt
+import numpy as np
 
 # Add project root to sys.path to fix imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -171,12 +172,53 @@ with tab4:
             df_bt = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell"])
             df_bt["PnL"] = df_bt["Sell"] - df_bt["Buy"]
             df_bt["Cumulative PnL"] = df_bt["PnL"].cumsum()
-            st.dataframe(df_bt)
+
+            # Convert to datetime if not already
+            df_bt["Date"] = pd.to_datetime(df_bt["Date"])
+            df_bt["ExitDate"] = df_bt["Date"].shift(-1).fillna(df_bt["Date"].iloc[-1])
+            df_bt["Duration"] = (df_bt["ExitDate"] - df_bt["Date"]).dt.days
+
+            # Metrics
+            total_trades = len(df_bt)
+            wins = df_bt[df_bt["PnL"] > 0]
+            losses = df_bt[df_bt["PnL"] <= 0]
+            win_ratio = round((len(wins) / total_trades) * 100, 2) if total_trades > 0 else 0
+            total_pnl = round(df_bt["PnL"].sum(), 2)
+            avg_duration = round(df_bt["Duration"].mean(), 2)
+
+            # Max Drawdown
+            running_max = df_bt["Cumulative PnL"].cummax()
+            drawdown = df_bt["Cumulative PnL"] - running_max
+            max_drawdown = round(drawdown.min(), 2)
+
+            # Sharpe Ratio (assume 0% risk-free rate and daily returns)
+            daily_returns = df_bt["PnL"]
+            sharpe_ratio = round(daily_returns.mean() / daily_returns.std(), 2) if daily_returns.std() > 0 else 0
+
+            # Summary
+            st.markdown("### 📋 Backtest Summary")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("📊 Total Trades", total_trades)
+            col2.metric("✅ Win Ratio", f"{win_ratio}%")
+            col3.metric("💰 Total PnL", f"{total_pnl:+.2f}")
+
+            col4, col5, col6 = st.columns(3)
+            col4.metric("⏱ Avg Duration", f"{avg_duration} days")
+            col5.metric("📉 Max Drawdown", f"{max_drawdown}")
+            col6.metric("📈 Sharpe Ratio", f"{sharpe_ratio}")
+
+            # Chart
+            st.markdown("### 📈 Cumulative PnL Over Time")
             chart = alt.Chart(df_bt).mark_line(point=True).encode(
                 x="Date:T",
                 y="Cumulative PnL:Q",
                 tooltip=["Date", "Buy", "Sell", "PnL", "Cumulative PnL"]
             ).properties(title=f"Backtest - {strategy}", width=700)
             st.altair_chart(chart, use_container_width=True)
+
+            # Trades Table
+            st.markdown("### 🧾 Trade Details")
+            st.dataframe(df_bt[["Date", "Buy", "Sell", "PnL", "Cumulative PnL", "Duration"]])
         else:
             st.warning("No trades were executed for this strategy in the selected period.")
+
