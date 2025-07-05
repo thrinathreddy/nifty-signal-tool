@@ -65,12 +65,19 @@ def run_backtest(symbol, strategy_name, period, share_count=1, stop_loss_pct=5.0
         print(f"⚠️ Skipping {symbol} due to low avg volume: {data['Volume'].mean():,.0f}")
         return []
 
-    data = data.rename(columns={"Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"})
+    data = data.rename(columns={
+        "Open": "open", "High": "high", "Low": "low",
+        "Close": "close", "Volume": "volume"
+    })
     data = prepare_indicators(data, strategy_name)
 
     trades = []
     position = None
     buy_price = 0
+
+    BROKERAGE_RATE = 0.0003  # 0.03%
+    GST_RATE = 0.18  # 18% on brokerage
+
     for i in range(len(data)):
         sub_df = data.iloc[:i + 1]
         today = sub_df.iloc[-1]
@@ -79,8 +86,13 @@ def run_backtest(symbol, strategy_name, period, share_count=1, stop_loss_pct=5.0
         if position == "LONG":
             pct_change = (close - buy_price) / buy_price * 100
             if pct_change >= target_pct or pct_change <= -stop_loss_pct:
-                pnl = (close - buy_price) * share_count
-                trades[-1] = (*trades[-1][:3], close, pnl)
+                turnover = (buy_price + close) * share_count
+                brokerage = turnover * BROKERAGE_RATE
+                gst = brokerage * GST_RATE
+                gross_pnl = (close - buy_price) * share_count
+                net_pnl = round(gross_pnl - brokerage - gst, 2)
+
+                trades[-1] = (*trades[-1][:3], close, net_pnl)
                 position = None
                 continue
 
@@ -91,9 +103,13 @@ def run_backtest(symbol, strategy_name, period, share_count=1, stop_loss_pct=5.0
             trades.append((sub_df.index[-1], signal, buy_price, None, None))
 
         elif signal == "SELL" and position == "LONG":
-            pnl = (close - buy_price) * share_count
-            trades[-1] = (*trades[-1][:3], close, pnl)
+            turnover = (buy_price + close) * share_count
+            brokerage = turnover * BROKERAGE_RATE
+            gst = brokerage * GST_RATE
+            gross_pnl = (close - buy_price) * share_count
+            net_pnl = round(gross_pnl - brokerage - gst, 2)
+
+            trades[-1] = (*trades[-1][:3], close, net_pnl)
             position = None
 
     return [t for t in trades if t[-1] is not None]
-
