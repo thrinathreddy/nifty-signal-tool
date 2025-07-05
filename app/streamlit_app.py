@@ -79,7 +79,7 @@ with tab1:
     if short_term:
         st.success(f"📊 {len(short_term)} short-term signals")
         for signal in short_term:
-            st.markdown(f"✅ **{signal['symbol']}** — 📰 *{str(signal.get("market_sentiment") or "").capitalize()} sentiment*")
+            st.markdown(f"✅ **{signal['symbol']}** — 📰 *{str(signal.get('market_sentiment') or '').capitalize()} sentiment*")
     else:
         st.info("No short-term signals for this day.")
 
@@ -89,7 +89,7 @@ with tab2:
     if long_term:
         st.success(f"🏆 {len(long_term)} fundamentally strong picks")
         for signal in long_term:
-            st.markdown(f"✅ **{signal['symbol']}** — 📰 *{str(signal.get("market_sentiment") or "").capitalize()} sentiment*")
+            st.markdown(f"✅ **{signal['symbol']}** — 📰 *{str(signal.get('market_sentiment') or '').capitalize()} sentiment*")
     else:
         st.info("No long-term picks for this day.")
 
