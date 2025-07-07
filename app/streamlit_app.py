@@ -238,7 +238,7 @@ with tab4:
             st.markdown("### 🧾 Trade Details")
             st.dataframe(df_bt[[
                 "Date", "Buy", "Sell", "Gross PnL",
-                "Brokerage", "GST", "Net PnL", "Cumulative Net PnL", "Duration"
+                "Brokerage", "GST", "STT", "Other chrgs", "Net PnL", "Cumulative Net PnL", "Duration"
             ]])
         else:
             st.warning("⚠️ No trades were executed for this strategy in the selected period.")
