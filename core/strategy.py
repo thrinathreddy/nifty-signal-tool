@@ -30,7 +30,7 @@ def generate_signal(df):
 
         # --- 9-30 Pullback Buy ---
         near_ema30 = abs(close - ema30) / ema30 < 0.01  # within 1%
-        if ema9 > ema30 and close < ema9 and near_ema30 and low < low20 and close > low20:
+        if ema9 > ema30 and close < ema9 and near_ema30: # and low < low20 and close > low20:
             logger.info("✅ BUY from 9-30 + Turtle Soup confluence.")
             return "BUY"
         # --- Turtle Soup Sell ---
