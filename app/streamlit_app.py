@@ -17,7 +17,7 @@ from strategies.strategy_registry import STRATEGY_MAP
 from strategies.stockSymbols import STOCKS
 
 # Streamlit UI config
-st.set_page_config(page_title="Nifty50 Signal Dashboard", layout="centered")
+st.set_page_config(page_title="Nifty50 Signal Dashboard", layout="wide")
 
 # App title
 st.title("📈 Nifty50 Signal Dashboard")
@@ -245,19 +245,22 @@ with tab4:
 with tab5:
     st.subheader("📊 Strategy Comparison for Selected Stock")
 
-    sorted_stock_items = sorted(STOCKS.items(), key=lambda x: x[0])
-    stock_display_list = [f"{name} ({symbol})" for name, symbol in sorted_stock_items]
-    name_symbol_map = {f"{name} ({symbol})": symbol for name, symbol in sorted_stock_items}
+    with st.form("strategy_comparison_form"):
+        sorted_stock_items = sorted(STOCKS.items(), key=lambda x: x[0])
+        stock_display_list = [f"{name} ({symbol})" for name, symbol in sorted_stock_items]
+        name_symbol_map = {f"{name} ({symbol})": symbol for name, symbol in sorted_stock_items}
 
-    selected_display = st.selectbox("📈 Choose Stock", stock_display_list, key="comp_symbol")
-    selected_symbol = name_symbol_map[selected_display]
+        selected_display = st.selectbox("📈 Choose Stock", stock_display_list, key="comp_symbol")
+        selected_symbol = name_symbol_map[selected_display]
 
-    comp_period = st.selectbox("🕒 Period", ["3mo", "6mo", "1y", "2y"], index=2, key="comp_period")
-    comp_shares = st.number_input("🔢 Share Count per Trade", value=1, min_value=1, step=1, key="comp_shares")
-    comp_sl = st.number_input("🔒 Stop Loss %", value=5.0, min_value=0.0, key="comp_sl")
-    comp_target = st.number_input("🎯 Target %", value=10.0, min_value=0.0, key="comp_target")
+        comp_period = st.selectbox("🕒 Period", ["3mo", "6mo", "1y", "2y"], index=2, key="comp_period")
+        comp_shares = st.number_input("🔢 Share Count per Trade", value=1, min_value=1, step=1, key="comp_shares")
+        comp_sl = st.number_input("🔒 Stop Loss %", value=5.0, min_value=0.0, key="comp_sl")
+        comp_target = st.number_input("🎯 Target %", value=10.0, min_value=0.0, key="comp_target")
 
-    if st.button("🚀 Run All Strategy Backtests"):
+        run_all = st.form_submit_button("🚀 Run All Strategy Backtests")
+
+    if run_all:
         with st.spinner("Running backtests across all strategies..."):
             result_df = run_all_backtests(
                 selected_symbol,
@@ -279,3 +282,4 @@ with tab5:
             st.altair_chart(chart, use_container_width=True)
         else:
             st.warning("⚠️ No trades executed by any strategy.")
+
