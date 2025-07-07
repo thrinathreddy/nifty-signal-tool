@@ -84,6 +84,7 @@ def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, 
 
     BROKERAGE_RATE = 0.0003  # 0.03%
     GST_RATE = 0.18  # 18% GST on brokerage
+    STT_RATE = 0.001  # 0.1% STT on sell side (for delivery)
 
     for i in range(len(data)):
         sub_df = data.iloc[:i + 1]
