@@ -199,7 +199,7 @@ with tab4:
         if trades:
             df_bt = pd.DataFrame(trades, columns=[
                 "Date", "Signal", "Buy", "Sell",
-                "Gross PnL", "Brokerage", "GST", "Net PnL"
+                "Gross PnL", "Brokerage", "GST", "STT", "Other chrgs", "Net PnL"
             ])
             df_bt["Date"] = pd.to_datetime(df_bt["Date"])
             df_bt["Cumulative Net PnL"] = df_bt["Net PnL"].cumsum()
