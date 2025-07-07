@@ -7,6 +7,24 @@ import logging
 logging.basicConfig(level=logging.INFO)
 MIN_AVG_VOLUME = 100000
 
+
+def load_symbol_data(symbol, period="6mo"):
+    data = yf.download(symbol + ".NS", period=period, interval="1d", auto_adjust=True, progress=False)
+
+    if len(data) < 2:
+        return None
+
+    data.columns = data.columns.get_level_values(0)
+
+    if data["Volume"].mean() < MIN_AVG_VOLUME:
+        print(f"⚠️ Skipping {symbol} due to low avg volume: {data['Volume'].mean():,.0f}")
+        return None
+
+    return data.rename(columns={
+        "Open": "open", "High": "high", "Low": "low",
+        "Close": "close", "Volume": "volume"
+    })
+
 def prepare_indicators(df, strategy_name):
     if df is None or df.empty or len(df) < 20:
         return df  # Not enough data, return as is
@@ -55,20 +73,9 @@ def prepare_indicators(df, strategy_name):
 
     return df
 
-def run_backtest(symbol, strategy_name, period, share_count=1, stop_loss_pct=5.0, target_pct=10.0):
-    data = yf.download(symbol + ".NS", period=period, interval="1d", auto_adjust=True, progress=False)
-    if len(data) < 2:
-        return []
-
-    data.columns = data.columns.get_level_values(0)
-    if data["Volume"].mean() < MIN_AVG_VOLUME:
-        print(f"⚠️ Skipping {symbol} due to low avg volume: {data['Volume'].mean():,.0f}")
-        return []
-
-    data = data.rename(columns={
-        "Open": "open", "High": "high", "Low": "low",
-        "Close": "close", "Volume": "volume"
-    })
+def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, target_pct=10.0):
+    if data is  None:
+        return None
     data = prepare_indicators(data, strategy_name)
 
     trades = []
@@ -121,3 +128,36 @@ def run_backtest(symbol, strategy_name, period, share_count=1, stop_loss_pct=5.0
             position = None
 
     return [t for t in trades if t[-1] is not None]
+
+def run_all_backtests(symbol, period="6mo", share_count=1, stop_loss_pct=5.0, target_pct=10.0):
+    summary = []
+    data = load_symbol_data(symbol, period)
+    if data is not None:
+        for strategy_name in STRATEGY_MAP.keys():
+            working_data = data.copy()
+            trades = run_backtest(symbol, strategy_name, working_data, share_count, stop_loss_pct, target_pct)
+            if trades:
+                df = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "Gross PnL", "Brokerage", "GST", "Net PnL"])
+                df["Date"] = pd.to_datetime(df["Date"])
+                df["ExitDate"] = df["Date"].shift(-1).fillna(df["Date"].iloc[-1])
+                df["Duration"] = (df["ExitDate"] - df["Date"]).dt.days
+                df["Cumulative Net PnL"] = df["Net PnL"].cumsum()
+
+                sharpe = round(df["Net PnL"].mean() / df["Net PnL"].std(), 2) if df["Net PnL"].std() > 0 else 0
+                win_ratio = round((df["Net PnL"] > 0).mean() * 100, 2)
+                total_net_pnl = round(df["Net PnL"].sum(), 2)
+                avg_duration = round(df["Duration"].mean(), 2)
+                max_drawdown = round((df["Cumulative Net PnL"] - df["Cumulative Net PnL"].cummax()).min(), 2)
+
+                summary.append({
+                    "Strategy": strategy_name,
+                    "Trades": len(df),
+                    "Wins (%)": win_ratio,
+                    "Net PnL": total_net_pnl,
+                    "Avg Duration": avg_duration,
+                    "Sharpe": sharpe,
+                    "Max Drawdown": max_drawdown,
+                })
+
+        return pd.DataFrame(summary).sort_values(by="Net PnL", ascending=False).reset_index(drop=True)
+    return None

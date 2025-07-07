@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from run_daily import run_scan
 from run_daily2 import run_scan2
 from core.db_handler import get_signals, get_trade_log
-from strategies.indicator_builder import run_backtest
+from strategies.indicator_builder import run_backtest, run_all_backtests, load_symbol_data
 from strategies.strategy_registry import STRATEGY_MAP
 from strategies.stockSymbols import STOCKS
 
@@ -56,11 +56,12 @@ def format_date(date_str):
         return date_str
 
 # Create tabs
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📅 Short-Term Signals",
     "🏦 Long-Term Investment Picks",
     "📘 Trade Log & Performance",
-    "🧪 Backtest Strategies"
+    "🧪 Backtest Strategies",
+    "📊 Strategy Comparison"
 ])
 
 # --- TAB 1: SHORT TERM SIGNALS ---
@@ -193,7 +194,8 @@ with tab4:
         submitted = st.form_submit_button("Run Backtest")
 
     if submitted:
-        trades = run_backtest(selected_symbol, strategy, period, share_count, stop_loss, target)
+        data = load_symbol_data(selected_symbol, period)
+        trades = run_backtest(selected_symbol, strategy, data, share_count, stop_loss, target)
         if trades:
             df_bt = pd.DataFrame(trades, columns=[
                 "Date", "Signal", "Buy", "Sell",
@@ -240,3 +242,40 @@ with tab4:
             ]])
         else:
             st.warning("⚠️ No trades were executed for this strategy in the selected period.")
+with tab5:
+    st.subheader("📊 Strategy Comparison for Selected Stock")
+
+    sorted_stock_items = sorted(STOCKS.items(), key=lambda x: x[0])
+    stock_display_list = [f"{name} ({symbol})" for name, symbol in sorted_stock_items]
+    name_symbol_map = {f"{name} ({symbol})": symbol for name, symbol in sorted_stock_items}
+
+    selected_display = st.selectbox("📈 Choose Stock", stock_display_list, key="comp_symbol")
+    selected_symbol = name_symbol_map[selected_display]
+
+    comp_period = st.selectbox("🕒 Period", ["3mo", "6mo", "1y", "2y"], index=2, key="comp_period")
+    comp_shares = st.number_input("🔢 Share Count per Trade", value=1, min_value=1, step=1, key="comp_shares")
+    comp_sl = st.number_input("🔒 Stop Loss %", value=5.0, min_value=0.0, key="comp_sl")
+    comp_target = st.number_input("🎯 Target %", value=10.0, min_value=0.0, key="comp_target")
+
+    if st.button("🚀 Run All Strategy Backtests"):
+        with st.spinner("Running backtests across all strategies..."):
+            result_df = run_all_backtests(
+                selected_symbol,
+                period=comp_period,
+                share_count=comp_shares,
+                stop_loss_pct=comp_sl,
+                target_pct=comp_target
+            )
+
+        if not result_df.empty:
+            st.success("✅ Completed backtests.")
+            st.dataframe(result_df)
+
+            chart = alt.Chart(result_df).mark_bar().encode(
+                x=alt.X("Strategy:N", sort="-y"),
+                y=alt.Y("Net PnL:Q"),
+                tooltip=["Strategy", "Net PnL", "Sharpe", "Trades", "Wins (%)"]
+            ).properties(width=700, title="Strategy Performance (Net PnL)")
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            st.warning("⚠️ No trades executed by any strategy.")

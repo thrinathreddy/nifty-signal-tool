@@ -44,8 +44,10 @@ def run_scan():
                 save_signal(symbol, signal, sentiment)
 
             # also check long-term signal
-            roe, de, eps = get_fundamentals(symbol+".NS")
-            ltsignal = evaluate_fundamentals(roe, de, eps)
+            data1 = get_fundamentals(symbol)
+            print("<UNK> Data fetched...")
+            print(data1)
+            ltsignal = evaluate_fundamentals(data1)
             if ltsignal == "LONG_TERM_BUY":
                 save_signal(symbol, ltsignal, sentiment)
             time.sleep(0.5)  # Sleep to avoid API throttling
