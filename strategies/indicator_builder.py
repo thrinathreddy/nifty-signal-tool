@@ -96,13 +96,17 @@ def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, 
                 turnover = (buy_price + close) * share_count
                 brokerage = turnover * BROKERAGE_RATE
                 gst = brokerage * GST_RATE
+                stt = sell_price * share_count * STT_RATE
+                exchange_txn = turnover * EXCHANGE_TXN_RATE
+                sebi_fee = turnover * SEBI_FEE_RATE
+                stamp_duty = buy_price * share_count * STAMP_DUTY_RATE
                 gross_pnl = (close - buy_price) * share_count
-                net_pnl = round(gross_pnl - brokerage - gst, 2)
+                net_pnl = round(gross_pnl - brokerage - gst - stt - exchange_txn - sebi_fee - stamp_duty, 2)
 
                 trades[-1] = (
                     sub_df.index[-1], "EXIT", buy_price, close,
                     round(gross_pnl, 2), round(brokerage, 2),
-                    round(gst, 2), net_pnl
+                    round(gst, 2), round(stt, 2), round(exchange_txn + sebi_fee + stamp_duty, 2), net_pnl
                 )
                 position = None
                 continue
@@ -117,13 +121,17 @@ def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, 
             turnover = (buy_price + close) * share_count
             brokerage = turnover * BROKERAGE_RATE
             gst = brokerage * GST_RATE
+            stt = sell_price * share_count * STT_RATE
+            exchange_txn = turnover * EXCHANGE_TXN_RATE
+            sebi_fee = turnover * SEBI_FEE_RATE
+            stamp_duty = buy_price * share_count * STAMP_DUTY_RATE
             gross_pnl = (close - buy_price) * share_count
-            net_pnl = round(gross_pnl - brokerage - gst, 2)
+            net_pnl = round(gross_pnl - brokerage - gst - stt - exchange_txn - sebi_fee - stamp_duty, 2)
 
             trades[-1] = (
                 sub_df.index[-1], signal, buy_price, close,
                 round(gross_pnl, 2), round(brokerage, 2),
-                round(gst, 2), net_pnl
+                round(gst, 2), round(stt, 2), round(exchange_txn + sebi_fee + stamp_duty, 2), net_pnl
             )
             position = None
 
