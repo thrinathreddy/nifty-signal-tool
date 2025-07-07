@@ -28,28 +28,45 @@ def load_symbol_data(symbol, period="6mo"):
 def prepare_indicators(df, strategy_name):
     if df is None or df.empty or len(df) < 20:
         return df  # Not enough data, return as is
+
     df = df.copy()
 
-    # Basic indicators used across many strategies
+    # RSI
     if "rsi" not in df.columns:
         df["rsi"] = ta.momentum.RSIIndicator(df["close"]).rsi()
 
+    # MACD
     if "macd" not in df.columns or "macd_signal" not in df.columns:
         macd = ta.trend.MACD(df["close"])
         df["macd"] = macd.macd()
         df["macd_signal"] = macd.macd_signal()
         df["macd_hist"] = macd.macd_diff()
 
+    # EMAs and SMAs
     if "ema_20" not in df.columns:
         df["ema_20"] = ta.trend.EMAIndicator(df["close"], window=20).ema_indicator()
-    if "ema_50" not in df.columns:
-        df["ema_50"] = ta.trend.EMAIndicator(df["close"], window=50).ema_indicator()
     if "ema_21" not in df.columns:
         df["ema_21"] = ta.trend.EMAIndicator(df["close"], window=21).ema_indicator()
-
+    if "ema_50" not in df.columns:
+        df["ema_50"] = ta.trend.EMAIndicator(df["close"], window=50).ema_indicator()
     if "sma_50" not in df.columns:
         df["sma_50"] = ta.trend.SMAIndicator(df["close"], window=50).sma_indicator()
 
+    # ATR
+    if "atr" not in df.columns:
+        df["atr"] = ta.volatility.AverageTrueRange(df["high"], df["low"], df["close"]).average_true_range()
+
+    # Volume average for momentum + volume strategy
+    if "vol_avg_20" not in df.columns:
+        df["vol_avg_20"] = df["volume"].rolling(window=20).mean()
+
+    # Rolling highs/lows for TurtleSoup & Breakout
+    if "high_20" not in df.columns:
+        df["high_20"] = df["high"].rolling(window=20).max()
+    if "low_20" not in df.columns:
+        df["low_20"] = df["low"].rolling(window=20).min()
+
+    # Strategy-specific indicators
     if strategy_name == "Bollinger Band Breakout":
         bb = ta.volatility.BollingerBands(df["close"])
         df["bb_upper"] = bb.bollinger_hband()
@@ -66,13 +83,10 @@ def prepare_indicators(df, strategy_name):
     if strategy_name == "Supertrend":
         st = ta.volatility.AverageTrueRange(df["high"], df["low"], df["close"])
         df["atr"] = st.average_true_range()
-        df["supertrend"] = df["close"] > (df["close"] - df["atr"])  # dummy logic, replace if you have real one
-
-    if strategy_name == "ATR Breakout":
-        df["atr"] = ta.volatility.AverageTrueRange(df["high"], df["low"], df["close"]).average_true_range()
+        df["supertrend"] = df["close"] > (df["close"] - df["atr"])  # dummy logic
 
     return df
-
+    
 def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, target_pct=10.0):
     if data is None:
         return None
