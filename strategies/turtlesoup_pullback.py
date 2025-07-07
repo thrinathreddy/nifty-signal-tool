@@ -13,7 +13,7 @@ def generate_signal(df):
     turtle_buy = yesterday["low"] < lowest_20 and latest["close"] > yesterday["low"]
 
     # Pullback + Momentum Confirmation
-    pullback_buy = latest["rsi"] > 40 and latest["close"] > df["ema20"].iloc[-1]
+    pullback_buy = latest["rsi"] > 40 and latest["close"] > df["ema_20"].iloc[-1]
 
     if turtle_buy and pullback_buy:
         return "BUY"
