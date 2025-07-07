@@ -96,7 +96,7 @@ def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, 
                 turnover = (buy_price + close) * share_count
                 brokerage = turnover * BROKERAGE_RATE
                 gst = brokerage * GST_RATE
-                stt = sell_price * share_count * STT_RATE
+                stt = close * share_count * STT_RATE
                 exchange_txn = turnover * EXCHANGE_TXN_RATE
                 sebi_fee = turnover * SEBI_FEE_RATE
                 stamp_duty = buy_price * share_count * STAMP_DUTY_RATE
@@ -121,7 +121,7 @@ def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, 
             turnover = (buy_price + close) * share_count
             brokerage = turnover * BROKERAGE_RATE
             gst = brokerage * GST_RATE
-            stt = sell_price * share_count * STT_RATE
+            stt = close * share_count * STT_RATE
             exchange_txn = turnover * EXCHANGE_TXN_RATE
             sebi_fee = turnover * SEBI_FEE_RATE
             stamp_duty = buy_price * share_count * STAMP_DUTY_RATE
