@@ -7,11 +7,12 @@ def process_today_buy_signals():
     signal_date = date.today() - timedelta(days=1)
     signals = get_today_buy_signals(signal_date)
     market_sentiment = get_or_cache_sentiment("Sensex")
-    if market_sentiment == "Positive sentiment":
+    print(market_sentiment)
+    if market_sentiment == "positive":
         for entry in signals:
             symbol = entry['symbol']
             stock_sentiment = get_or_cache_sentiment(symbol)
-            if stock_sentiment == "Positive sentiment":
+            if stock_sentiment == "positive":
                 buy_type = entry['type']
 
                 buy_price = get_open_price(symbol, date.today())
