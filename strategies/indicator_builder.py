@@ -72,7 +72,7 @@ def prepare_indicators(df, strategy_name):
         df["bb_upper"] = bb.bollinger_hband()
         df["bb_lower"] = bb.bollinger_lband()
 
-    if strategy_name == "Stochastic RSI":
+    if strategy_name == "Stochastic RSI" or strategy_name == "MACD Histogram with Stochastic RSI":
         stoch = ta.momentum.StochRSIIndicator(df["close"])
         df["stoch_k"] = stoch.stochrsi_k()
         df["stoch_d"] = stoch.stochrsi_d()
