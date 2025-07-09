@@ -6,7 +6,7 @@ from urllib.parse import quote_plus
 
 analyzer = SentimentIntensityAnalyzer()
 
-def fetch_google_news_headlines(symbol, max_articles=10):
+def fetch_google_news_headlines(symbol, max_articles=20):
     query = quote_plus(f"{symbol} stock")
     rss_url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
 
