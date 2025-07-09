@@ -11,50 +11,22 @@ def apply_indicators(df):
         return None
 
     try:
-        # Ensure Close is numeric
-        logger.info(df)
         df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
-        nan_count = df["Close"].isna().sum()
-        if nan_count > 0:
-            logger.warning(f"⚠️ Found {nan_count} NaNs in 'Close' column. Dropping them.")
-            df = df.dropna(subset=["Close"])
+        df = df.dropna(subset=["Close"])
 
-        # Re-check structure
         if df.empty:
             logger.error("❌ DataFrame is empty after cleaning 'Close' column.")
             return None
-        if not isinstance(df["Close"], pd.Series):
-            logger.error("❌ 'Close' is not a Series after conversion.")
-            return None
 
-        logger.info(f"📄 DataFrame length after cleaning: {len(df)} rows")
+        # EMA for 9 and 30
+        logger.info("📉 Calculating EMA9 and EMA30...")
+        df["ema9"] = ta.ema(df["Close"], length=9)
+        df["ema30"] = ta.ema(df["Close"], length=30)
 
-        # RSI
-        logger.info("🧮 Calculating RSI...")
-        df["rsi"] = ta.rsi(df["Close"])
-        logger.debug(f"RSI head:\n{df['rsi'].head()}")
-
-        # MACD
-        logger.info("📈 Calculating MACD...")
-        if len(df) >= 50:
-            macd_df = ta.macd(df["Close"])
-            if isinstance(macd_df, pd.DataFrame) and not macd_df.empty:
-                df["macd"] = macd_df.iloc[:, 0]
-                df["macd_signal"] = macd_df.iloc[:, 1]
-                logger.info("✅ MACD and Signal added.")
-            else:
-                df["macd"] = None
-                df["macd_signal"] = None
-                logger.warning("⚠️ MACD calculation returned empty.")
-        else:
-            df["macd"] = None
-            df["macd_signal"] = None
-            logger.warning("⚠️ Not enough data for MACD.")
-
-        # EMA
-        logger.info("📉 Calculating EMA50 and EMA200...")
-        df["ema50"] = ta.ema(df["Close"], length=50)
-        df["ema200"] = ta.ema(df["Close"], length=200)
+        # 20-day High/Low for Turtle Soup
+        logger.info("📈 Calculating 20-day high/low for Turtle Soup...")
+        df["20d_low"] = df["Low"].rolling(window=20).min()
+        df["20d_high"] = df["High"].rolling(window=20).max()
 
     except Exception as e:
         logger.exception(f"[‼️] Indicator application failed: {e}")

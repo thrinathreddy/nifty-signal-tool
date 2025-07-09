@@ -9,6 +9,12 @@ from strategies import (
     rsi_ema_confluence,
     macd_histogram,
     atr_breakout,
+    seven_twentyone_breakout,
+    nine_thirty_pullback,
+    turtlesoup,
+    breakout_volatility,
+    momentum_trend_volume,
+    turtlesoup_pullback,
 )
 
 STRATEGY_MAP = {
@@ -22,4 +28,10 @@ STRATEGY_MAP = {
     "RSI + EMA Confluence": rsi_ema_confluence,
     "MACD Histogram Surge": macd_histogram,
     "ATR Breakout": atr_breakout,
+    "7-21 Breakout": seven_twentyone_breakout,
+    "9-30 Pullback": nine_thirty_pullback,
+    "TurtleSoup": turtlesoup,
+    "BreakoutVolatility": breakout_volatility,
+    "MomentumTrendVolume": momentum_trend_volume,
+    "TurtleSoupPullback": turtlesoup_pullback,
 }

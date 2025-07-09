@@ -28,28 +28,45 @@ def load_symbol_data(symbol, period="6mo"):
 def prepare_indicators(df, strategy_name):
     if df is None or df.empty or len(df) < 20:
         return df  # Not enough data, return as is
+
     df = df.copy()
 
-    # Basic indicators used across many strategies
+    # RSI
     if "rsi" not in df.columns:
         df["rsi"] = ta.momentum.RSIIndicator(df["close"]).rsi()
 
+    # MACD
     if "macd" not in df.columns or "macd_signal" not in df.columns:
         macd = ta.trend.MACD(df["close"])
         df["macd"] = macd.macd()
         df["macd_signal"] = macd.macd_signal()
         df["macd_hist"] = macd.macd_diff()
 
+    # EMAs and SMAs
     if "ema_20" not in df.columns:
         df["ema_20"] = ta.trend.EMAIndicator(df["close"], window=20).ema_indicator()
-    if "ema_50" not in df.columns:
-        df["ema_50"] = ta.trend.EMAIndicator(df["close"], window=50).ema_indicator()
     if "ema_21" not in df.columns:
         df["ema_21"] = ta.trend.EMAIndicator(df["close"], window=21).ema_indicator()
-
+    if "ema_50" not in df.columns:
+        df["ema_50"] = ta.trend.EMAIndicator(df["close"], window=50).ema_indicator()
     if "sma_50" not in df.columns:
         df["sma_50"] = ta.trend.SMAIndicator(df["close"], window=50).sma_indicator()
 
+    # ATR
+    if "atr" not in df.columns:
+        df["atr"] = ta.volatility.AverageTrueRange(df["high"], df["low"], df["close"]).average_true_range()
+
+    # Volume average for momentum + volume strategy
+    if "vol_avg_20" not in df.columns:
+        df["vol_avg_20"] = df["volume"].rolling(window=20).mean()
+
+    # Rolling highs/lows for TurtleSoup & Breakout
+    if "high_20" not in df.columns:
+        df["high_20"] = df["high"].rolling(window=20).max()
+    if "low_20" not in df.columns:
+        df["low_20"] = df["low"].rolling(window=20).min()
+
+    # Strategy-specific indicators
     if strategy_name == "Bollinger Band Breakout":
         bb = ta.volatility.BollingerBands(df["close"])
         df["bb_upper"] = bb.bollinger_hband()
@@ -66,24 +83,28 @@ def prepare_indicators(df, strategy_name):
     if strategy_name == "Supertrend":
         st = ta.volatility.AverageTrueRange(df["high"], df["low"], df["close"])
         df["atr"] = st.average_true_range()
-        df["supertrend"] = df["close"] > (df["close"] - df["atr"])  # dummy logic, replace if you have real one
-
-    if strategy_name == "ATR Breakout":
-        df["atr"] = ta.volatility.AverageTrueRange(df["high"], df["low"], df["close"]).average_true_range()
+        df["supertrend"] = df["close"] > (df["close"] - df["atr"])  # dummy logic
 
     return df
-
+    
 def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, target_pct=10.0):
-    if data is  None:
+    if data is None:
         return None
+
     data = prepare_indicators(data, strategy_name)
 
     trades = []
     position = None
     buy_price = 0
+    peak_price = 0  # for trailing stop
 
-    BROKERAGE_RATE = 0.0003  # 0.03%
-    GST_RATE = 0.18  # 18% GST on brokerage
+    # Charges
+    BROKERAGE_RATE = 0.0003
+    GST_RATE = 0.18
+    STT_RATE = 0.001
+    EXCHANGE_TXN_RATE = 0.0000345
+    SEBI_FEE_RATE = 0.000001
+    STAMP_DUTY_RATE = 0.00015
 
     for i in range(len(data)):
         sub_df = data.iloc[:i + 1]
@@ -91,41 +112,64 @@ def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, 
         close = today["close"]
 
         if position == "LONG":
-            pct_change = (close - buy_price) / buy_price * 100
-            if pct_change >= target_pct or pct_change <= -stop_loss_pct:
+            # Update peak price (used for trailing stop)
+            peak_price = max(peak_price, close)
+
+            # % change from buy price (used for target)
+            pct_gain = (close - buy_price) / buy_price * 100
+            # % drawdown from peak (used for trailing stop)
+            drawdown = (close - peak_price) / peak_price * 100
+
+            # Exit on target or trailing stop loss
+            if pct_gain >= target_pct or drawdown <= -stop_loss_pct:
                 turnover = (buy_price + close) * share_count
                 brokerage = turnover * BROKERAGE_RATE
                 gst = brokerage * GST_RATE
+                stt = close * share_count * STT_RATE
+                exchange_txn = turnover * EXCHANGE_TXN_RATE
+                sebi_fee = turnover * SEBI_FEE_RATE
+                stamp_duty = buy_price * share_count * STAMP_DUTY_RATE
                 gross_pnl = (close - buy_price) * share_count
-                net_pnl = round(gross_pnl - brokerage - gst, 2)
+                net_pnl = round(gross_pnl - brokerage - gst - stt - exchange_txn - sebi_fee - stamp_duty, 2)
 
                 trades[-1] = (
                     sub_df.index[-1], "EXIT", buy_price, close,
                     round(gross_pnl, 2), round(brokerage, 2),
-                    round(gst, 2), net_pnl
+                    round(gst, 2), round(stt, 2),
+                    round(exchange_txn + sebi_fee + stamp_duty, 2),
+                    net_pnl
                 )
                 position = None
+                peak_price = 0
                 continue
 
         signal = STRATEGY_MAP[strategy_name].generate_signal(sub_df)
         if signal == "BUY" and position is None:
             buy_price = close
+            peak_price = close  # initialize trailing stop peak
             position = "LONG"
-            trades.append((sub_df.index[-1], signal, buy_price, None, None, None, None, None))
+            trades.append((sub_df.index[-1], signal, buy_price, None, None, None, None, None, None, None))
 
         elif signal == "SELL" and position == "LONG":
             turnover = (buy_price + close) * share_count
             brokerage = turnover * BROKERAGE_RATE
             gst = brokerage * GST_RATE
+            stt = close * share_count * STT_RATE
+            exchange_txn = turnover * EXCHANGE_TXN_RATE
+            sebi_fee = turnover * SEBI_FEE_RATE
+            stamp_duty = buy_price * share_count * STAMP_DUTY_RATE
             gross_pnl = (close - buy_price) * share_count
-            net_pnl = round(gross_pnl - brokerage - gst, 2)
+            net_pnl = round(gross_pnl - brokerage - gst - stt - exchange_txn - sebi_fee - stamp_duty, 2)
 
             trades[-1] = (
                 sub_df.index[-1], signal, buy_price, close,
                 round(gross_pnl, 2), round(brokerage, 2),
-                round(gst, 2), net_pnl
+                round(gst, 2), round(stt, 2),
+                round(exchange_txn + sebi_fee + stamp_duty, 2),
+                net_pnl
             )
             position = None
+            peak_price = 0
 
     return [t for t in trades if t[-1] is not None]
 
@@ -137,7 +181,7 @@ def run_all_backtests(symbol, period="6mo", share_count=1, stop_loss_pct=5.0, ta
             working_data = data.copy()
             trades = run_backtest(symbol, strategy_name, working_data, share_count, stop_loss_pct, target_pct)
             if trades:
-                df = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "Gross PnL", "Brokerage", "GST", "Net PnL"])
+                df = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "Gross PnL", "Brokerage", "GST", "STT", "Other Chrgs", "Net PnL"])
                 df["Date"] = pd.to_datetime(df["Date"])
                 df["ExitDate"] = df["Date"].shift(-1).fillna(df["Date"].iloc[-1])
                 df["Duration"] = (df["ExitDate"] - df["Date"]).dt.days
