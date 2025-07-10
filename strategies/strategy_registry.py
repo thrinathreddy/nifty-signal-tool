@@ -16,6 +16,7 @@ from strategies import (
     momentum_trend_volume,
     turtlesoup_pullback,
     macd_histogram_stochastic_rsi,
+    ema21pullback,
 )
 
 STRATEGY_MAP = {
@@ -35,5 +36,6 @@ STRATEGY_MAP = {
     "BreakoutVolatility": breakout_volatility,
     "MomentumTrendVolume": momentum_trend_volume,
     "TurtleSoupPullback": turtlesoup_pullback,
-    "MACD Histogram with Stochastic RSI": macd_histogram_stochastic_rsi
+    "MACD Histogram with Stochastic RSI": macd_histogram_stochastic_rsi,
+    "21EMA Pullback Confirmation": ema21pullback,
 }
