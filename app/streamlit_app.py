@@ -4,6 +4,7 @@ import sys
 from datetime import datetime, timedelta, date
 import pandas as pd
 import altair as alt
+import plotly.graph_objects as go
 import numpy as np
 
 # Add project root to sys.path to fix imports
@@ -173,6 +174,73 @@ with tab3:
         st.info("No trades logged yet.")
 
 
+def plot_trade_candlestick(data1, trade_row, symbol):
+    buy_date = pd.to_datetime(trade_row["Date"])
+    sell_date = pd.to_datetime(trade_row["ExitDate"])
+
+    # Create a window from 7 days before buy to 2 days after sell
+    start = buy_date - pd.Timedelta(days=7)
+    end = sell_date + pd.Timedelta(days=2)
+    trade_df = data1[(data1.index >= start) & (data1.index <= end)].copy()
+
+    if trade_df.empty:
+        st.warning("⚠️ No data found for trade window.")
+        return
+
+    # Plot candlestick chart
+    fig = go.Figure(data=[go.Candlestick(
+        x=trade_df.index,
+        open=trade_df["open"],
+        high=trade_df["high"],
+        low=trade_df["low"],
+        close=trade_df["close"],
+        name="Candles"
+    )])
+
+    # Add EMA line if available
+    if "ema_21" in trade_df.columns:
+        fig.add_trace(go.Scatter(
+            x=trade_df.index,
+            y=trade_df["ema_21"],
+            mode='lines',
+            line=dict(color="blue", width=1),
+            name="EMA 21"
+        ))
+
+    # Mark Buy
+    fig.add_trace(go.Scatter(
+        x=[buy_date],
+        y=[trade_row["Buy"]],
+        mode="markers+text",
+        marker=dict(symbol="triangle-up", color="green", size=12),
+        text=["BUY"],
+        textposition="top center",
+        name="Buy"
+    ))
+
+    # Mark Sell
+    if pd.notna(trade_row["Sell"]):
+        fig.add_trace(go.Scatter(
+            x=[sell_date],
+            y=[trade_row["Sell"]],
+            mode="markers+text",
+            marker=dict(symbol="triangle-down", color="red", size=12),
+            text=["SELL"],
+            textposition="bottom center",
+            name="Sell"
+        ))
+
+    fig.update_layout(
+        title=f"🕵️ Trade Chart: {symbol.upper()} ({buy_date.date()} ➜ {sell_date.date()})",
+        xaxis_title="Date",
+        yaxis_title="Price",
+        showlegend=True,
+        height=500
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
 with tab4:
     st.subheader("📊 Backtest Strategy")
 
@@ -240,6 +308,10 @@ with tab4:
                 "Date", "Buy", "Sell", "Gross PnL",
                 "Brokerage", "GST", "STT", "Other chrgs", "Net PnL", "Cumulative Net PnL", "Duration"
             ]])
+            st.markdown("### 📉 Trade Candlestick Visuals")
+            for idx, row in df_bt.iterrows():
+                st.markdown(f"#### Trade {idx + 1}")
+                plot_trade_candlestick(data, row, selected_symbol)
         else:
             st.warning("⚠️ No trades were executed for this strategy in the selected period.")
 with tab5:
