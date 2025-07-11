@@ -267,7 +267,7 @@ with tab4:
         if trades:
             df_bt = pd.DataFrame(trades, columns=[
                 "Date", "Signal", "Buy", "Sell",
-                "Gross PnL", "Brokerage", "GST", "STT", "Other chrgs", "Net PnL", "ExitDate"
+                "Gross PnL", "Brokerage", "GST", "STT", "Other chrgs", "Net PnL", "ExitDate", "Reason"
             ])
             df_bt["Date"] = pd.to_datetime(df_bt["Date"])
             df_bt["Cumulative Net PnL"] = df_bt["Net PnL"].cumsum()
@@ -306,7 +306,7 @@ with tab4:
             st.markdown("### 🧾 Trade Details")
             st.dataframe(df_bt[[
                 "Date", "ExitDate", "Buy", "Sell", "Gross PnL",
-                "Brokerage", "GST", "STT", "Other chrgs", "Net PnL", "Cumulative Net PnL", "Duration"
+                "Brokerage", "GST", "STT", "Other chrgs", "Net PnL", "Cumulative Net PnL", "Duration", "Reason"
             ]])
             st.markdown("### 📉 Trade Candlestick Visuals")
             for idx, row in df_bt.iterrows():

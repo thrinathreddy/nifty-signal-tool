@@ -120,7 +120,7 @@ def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, 
             peak_price = max(peak_price, high)
 
             target_price = buy_price * (1 + target_pct / 100)
-            stop_price = peak_price * (1 - stop_loss_pct / 100)
+            stop_price = buy_price * (1 - stop_loss_pct / 100)
 
             sell_price = None
             reason = None
@@ -164,7 +164,8 @@ def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, 
                     round(stt, 2),
                     round(exchange_txn + sebi_fee + stamp_duty, 2),
                     net_pnl,
-                    today.name  # actual exit date
+                    today.name,  # actual exit date
+                    reason
                 )
                 position = None
                 peak_price = 0
@@ -217,7 +218,7 @@ def run_all_backtests(symbol, period="6mo", share_count=1, stop_loss_pct=5.0, ta
             working_data = data.copy()
             trades = run_backtest(symbol, strategy_name, working_data, share_count, stop_loss_pct, target_pct)
             if trades:
-                df = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "Gross PnL", "Brokerage", "GST", "STT", "Other Chrgs", "Net PnL", "ExitDate"])
+                df = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "Gross PnL", "Brokerage", "GST", "STT", "Other Chrgs", "Net PnL", "ExitDate", "Reason"])
                 df["Date"] = pd.to_datetime(df["Date"])
                 df["ExitDate"] = pd.to_datetime(df["ExitDate"])
                 df["Duration"] = (df["ExitDate"] - df["Date"]).dt.days
