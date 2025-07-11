@@ -88,15 +88,14 @@ def prepare_indicators(df, strategy_name):
     return df
     
 def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, target_pct=10.0):
-    if data is None:
+    if data is None or len(data) < 2:
         return None
 
     data = prepare_indicators(data, strategy_name)
-
     trades = []
     position = None
     buy_price = 0
-    peak_price = 0  # for trailing stop
+    peak_price = 0
 
     # Charges
     BROKERAGE_RATE = 0.0003
@@ -106,63 +105,100 @@ def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, 
     SEBI_FEE_RATE = 0.000001
     STAMP_DUTY_RATE = 0.00015
 
-    for i in range(len(data)):
+    for i in range(len(data) - 1):  # leave room for next day's open
+        today = data.iloc[i]
+        next_day = data.iloc[i + 1]
         sub_df = data.iloc[:i + 1]
-        today = sub_df.iloc[-1]
-        close = today["close"]
 
+        # Check exit conditions
         if position == "LONG":
-            # Update peak price (used for trailing stop)
-            peak_price = max(peak_price, close)
+            open_price = today["open"]
+            high = today["high"]
+            low = today["low"]
 
-            # % change from buy price (used for target)
-            pct_gain = (close - buy_price) / buy_price * 100
-            # % drawdown from peak (used for trailing stop)
-            drawdown = (close - peak_price) / peak_price * 100
+            # Update peak price for trailing stop
+            peak_price = max(peak_price, high)
 
-            # Exit on target or trailing stop loss
-            if pct_gain >= target_pct or drawdown <= -stop_loss_pct:
-                turnover = (buy_price + close) * share_count
+            target_price = buy_price * (1 + target_pct / 100)
+            stop_price = peak_price * (1 - stop_loss_pct / 100)
+
+            sell_price = None
+            reason = None
+
+            # --- Priority 1: Check if stop-loss or target hit on market open ---
+            if open_price <= stop_price:
+                sell_price = open_price
+                reason = "STOPLOSS (Gap)"
+            elif open_price >= target_price:
+                sell_price = open_price
+                reason = "TARGET (Gap)"
+
+            # --- Priority 2: Normal intraday range checks ---
+            elif high >= target_price:
+                sell_price = target_price
+                reason = "TARGET"
+            elif low <= stop_price:
+                sell_price = stop_price
+                reason = "STOPLOSS"
+
+            if sell_price is not None:
+                turnover = (buy_price + sell_price) * share_count
                 brokerage = turnover * BROKERAGE_RATE
                 gst = brokerage * GST_RATE
-                stt = close * share_count * STT_RATE
+                stt = sell_price * share_count * STT_RATE
                 exchange_txn = turnover * EXCHANGE_TXN_RATE
                 sebi_fee = turnover * SEBI_FEE_RATE
                 stamp_duty = buy_price * share_count * STAMP_DUTY_RATE
-                gross_pnl = (close - buy_price) * share_count
+                gross_pnl = (sell_price - buy_price) * share_count
                 net_pnl = round(gross_pnl - brokerage - gst - stt - exchange_txn - sebi_fee - stamp_duty, 2)
 
+                entry = trades[-1]
                 trades[-1] = (
-                    sub_df.index[-1], "EXIT", buy_price, close,
-                    round(gross_pnl, 2), round(brokerage, 2),
-                    round(gst, 2), round(stt, 2),
+                    entry[0],  # original buy date
+                    reason,
+                    buy_price,
+                    sell_price,
+                    round(gross_pnl, 2),
+                    round(brokerage, 2),
+                    round(gst, 2),
+                    round(stt, 2),
                     round(exchange_txn + sebi_fee + stamp_duty, 2),
-                    net_pnl
+                    net_pnl,
+                    today.name  # actual exit date
                 )
                 position = None
                 peak_price = 0
                 continue
 
+        # Entry Signal
         signal = STRATEGY_MAP[strategy_name].generate_signal(sub_df)
-        if signal == "BUY" and position is None:
-            buy_price = close
-            peak_price = close  # initialize trailing stop peak
-            position = "LONG"
-            trades.append((sub_df.index[-1], signal, buy_price, None, None, None, None, None, None, None))
 
+        if signal == "BUY" and position is None:
+            print("buy placing")
+
+            print(today.name)
+            print(next_day.name)
+            buy_price = next_day["open"]  # buy on next day open
+            print(buy_price)
+            peak_price = buy_price
+            position = "LONG"
+            trades.append((
+                next_day.name, signal, buy_price, None, None, None, None, None, None, None, None
+            ))
         elif signal == "SELL" and position == "LONG":
-            turnover = (buy_price + close) * share_count
+            sell_price = today["close"]
+            turnover = (buy_price + sell_price) * share_count
             brokerage = turnover * BROKERAGE_RATE
             gst = brokerage * GST_RATE
-            stt = close * share_count * STT_RATE
+            stt = sell_price * share_count * STT_RATE
             exchange_txn = turnover * EXCHANGE_TXN_RATE
             sebi_fee = turnover * SEBI_FEE_RATE
             stamp_duty = buy_price * share_count * STAMP_DUTY_RATE
-            gross_pnl = (close - buy_price) * share_count
+            gross_pnl = (sell_price - buy_price) * share_count
             net_pnl = round(gross_pnl - brokerage - gst - stt - exchange_txn - sebi_fee - stamp_duty, 2)
 
             trades[-1] = (
-                sub_df.index[-1], signal, buy_price, close,
+                today.name, signal, buy_price, sell_price,
                 round(gross_pnl, 2), round(brokerage, 2),
                 round(gst, 2), round(stt, 2),
                 round(exchange_txn + sebi_fee + stamp_duty, 2),
@@ -170,7 +206,7 @@ def run_backtest(symbol, strategy_name, data, share_count=1, stop_loss_pct=5.0, 
             )
             position = None
             peak_price = 0
-
+    print(trades)
     return [t for t in trades if t[-1] is not None]
 
 def run_all_backtests(symbol, period="6mo", share_count=1, stop_loss_pct=5.0, target_pct=10.0):

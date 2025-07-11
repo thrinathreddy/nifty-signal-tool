@@ -178,9 +178,9 @@ def plot_trade_candlestick(data1, trade_row, symbol):
     buy_date = pd.to_datetime(trade_row["Date"])
     sell_date = pd.to_datetime(trade_row["ExitDate"])
 
-    # Create a window from 7 days before buy to 2 days after sell
-    start = buy_date - pd.Timedelta(days=7)
-    end = sell_date + pd.Timedelta(days=2)
+    # Create a window from 5 days before buy to 5 days after sell
+    start = buy_date - pd.Timedelta(days=5)
+    end = sell_date + pd.Timedelta(days=5)
     trade_df = data1[(data1.index >= start) & (data1.index <= end)].copy()
 
     if trade_df.empty:
@@ -267,11 +267,11 @@ with tab4:
         if trades:
             df_bt = pd.DataFrame(trades, columns=[
                 "Date", "Signal", "Buy", "Sell",
-                "Gross PnL", "Brokerage", "GST", "STT", "Other chrgs", "Net PnL"
+                "Gross PnL", "Brokerage", "GST", "STT", "Other chrgs", "Net PnL", "ExitDate"
             ])
             df_bt["Date"] = pd.to_datetime(df_bt["Date"])
             df_bt["Cumulative Net PnL"] = df_bt["Net PnL"].cumsum()
-            df_bt["ExitDate"] = df_bt["Date"].shift(-1).fillna(df_bt["Date"].iloc[-1])
+            df_bt["ExitDate"] = pd.to_datetime(df_bt["ExitDate"])
             df_bt["Duration"] = (df_bt["ExitDate"] - df_bt["Date"]).dt.days
 
             total_trades = len(df_bt)
@@ -305,7 +305,7 @@ with tab4:
 
             st.markdown("### 🧾 Trade Details")
             st.dataframe(df_bt[[
-                "Date", "Buy", "Sell", "Gross PnL",
+                "Date", "ExitDate", "Buy", "Sell", "Gross PnL",
                 "Brokerage", "GST", "STT", "Other chrgs", "Net PnL", "Cumulative Net PnL", "Duration"
             ]])
             st.markdown("### 📉 Trade Candlestick Visuals")
