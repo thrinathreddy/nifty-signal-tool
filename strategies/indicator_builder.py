@@ -217,9 +217,9 @@ def run_all_backtests(symbol, period="6mo", share_count=1, stop_loss_pct=5.0, ta
             working_data = data.copy()
             trades = run_backtest(symbol, strategy_name, working_data, share_count, stop_loss_pct, target_pct)
             if trades:
-                df = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "Gross PnL", "Brokerage", "GST", "STT", "Other Chrgs", "Net PnL"])
+                df = pd.DataFrame(trades, columns=["Date", "Signal", "Buy", "Sell", "Gross PnL", "Brokerage", "GST", "STT", "Other Chrgs", "Net PnL", "ExitDate"])
                 df["Date"] = pd.to_datetime(df["Date"])
-                df["ExitDate"] = df["Date"].shift(-1).fillna(df["Date"].iloc[-1])
+                df["ExitDate"] = pd.to_datetime(df["ExitDate"])
                 df["Duration"] = (df["ExitDate"] - df["Date"]).dt.days
                 df["Cumulative Net PnL"] = df["Net PnL"].cumsum()
 
